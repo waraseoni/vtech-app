@@ -1,30 +1,38 @@
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose'); // Mongoose ko add karein
+const mongoose = require('mongoose');
 
 const app = express();
+
+// Middlewares
 app.use(cors());
 app.use(express.json());
 
-// MongoDB Connection
-// 'vtechDB' aapke database ka naam hoga
-mongoose.connect('mongodb://127.0.0.1:27017/vtechDB')
-    .then(() => console.log("MongoDB se connection jud gaya hai! ✅"))
+// 1. Database Connection Logic (Local aur Cloud dono ke liye)
+const dbURI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/vtechDB';
+
+mongoose.connect(dbURI)
+    .then(() => console.log("Database se connection jud gaya hai! ✅"))
     .catch((err) => console.error("Database connection error: ", err));
 
-// Ek simple Schema (Data ka structure)
+// 2. Schema aur Model
 const MessageSchema = new mongoose.Schema({
     text: String
 });
 const Message = mongoose.model('Message', MessageSchema);
 
+// 3. API Routes
+// GET: Saare messages dikhane ke liye
 app.get('/api/message', async (req, res) => {
-    // findOne() ki jagah find() use karein taaki SARE messages milein
-    const data = await Message.find(); 
-    res.json(data); // Pura array bhejein
+    try {
+        const data = await Message.find();
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-// Data save karne ke liye naya rasta (Route)
+// POST: Naya message save karne ke liye
 app.post('/api/save', async (req, res) => {
     try {
         const newMessage = new Message({ text: req.body.text });
@@ -35,28 +43,13 @@ app.post('/api/save', async (req, res) => {
     }
 });
 
-// Server/index.js mein ye add karein
-// Yeh naya hissa hai jo delete karega
-app.delete('/api/message/:id', async (req, res) => {
-    try {
-        const result = await Message.findByIdAndDelete(req.params.id);
-        if (result) {
-            res.json({ success: true, message: "Delete ho gaya!" });
-        } else {
-            res.status(404).json({ success: false, message: "Message nahi mila" });
-        }
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Data Edit (Update) karne ke liye rasta
+// PUT: Purana message edit karne ke liye
 app.put('/api/message/:id', async (req, res) => {
     try {
         const updatedMessage = await Message.findByIdAndUpdate(
             req.params.id, 
             { text: req.body.text }, 
-            { new: true } // Isse humein naya wala data wapas milta hai
+            { new: true }
         );
         res.json({ success: true, updatedMessage });
     } catch (err) {
@@ -64,7 +57,18 @@ app.put('/api/message/:id', async (req, res) => {
     }
 });
 
-const PORT = 5000;
+// DELETE: Message hatane ke liye
+app.delete('/api/message/:id', async (req, res) => {
+    try {
+        await Message.findByIdAndDelete(req.params.id);
+        res.json({ success: true, message: "Delete ho gaya!" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 4. Port Configuration (Render ke liye zaroori)
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server chalu hai: http://localhost:${PORT}`);
 });
