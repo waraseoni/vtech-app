@@ -4,22 +4,23 @@ import './App.css';
 const API_URL = "https://vtech-app.onrender.com";
 
 function App() {
-  const [activeTab, setActiveTab] = useState('clients'); // Navigation State
+  const [activeTab, setActiveTab] = useState('clients');
   const [clients, setClients] = useState([]);
   const [mechanics, setMechanics] = useState([]);
+  const [services, setServices] = useState([]);
   
-  // Modal States
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
   // Form States
   const [clientForm, setClientForm] = useState({ firstname: '', lastname: '', contact: '', address: '' });
   const [mechForm, setMechForm] = useState({ name: '', contact: '', email: '', status: 1 });
+  const [serviceForm, setServiceForm] = useState({ service: '', description: '', cost: '', status: 1 });
 
   useEffect(() => {
     fetchClients();
     fetchMechanics();
-	fetchServices();
+    fetchServices();
   }, []);
 
   // --- API CALLS ---
@@ -35,38 +36,48 @@ function App() {
     setMechanics(data);
   };
 
+  const fetchServices = async () => {
+    const res = await fetch(`${API_URL}/api/services`);
+    const data = await res.json();
+    setServices(data);
+  };
+
   // --- SAVE HANDLERS ---
-  const handleSaveClient = async (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    const method = editingId ? 'PUT' : 'POST';
-    const url = editingId ? `${API_URL}/api/clients/${editingId}` : `${API_URL}/api/clients`;
+    let url = "";
+    let body = {};
+    let type = activeTab; // 'clients', 'mechanics', or 'services'
+
+    if (type === 'clients') {
+      url = editingId ? `${API_URL}/api/clients/${editingId}` : `${API_URL}/api/clients`;
+      body = clientForm;
+    } else if (type === 'mechanics') {
+      url = editingId ? `${API_URL}/api/mechanics/${editingId}` : `${API_URL}/api/mechanics`;
+      body = mechForm;
+    } else {
+      url = editingId ? `${API_URL}/api/services/${editingId}` : `${API_URL}/api/services`;
+      body = serviceForm;
+    }
+
     await fetch(url, {
-      method,
+      method: editingId ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(clientForm)
+      body: JSON.stringify(body)
     });
+
     closeModal();
-    fetchClients();
+    if (type === 'clients') fetchClients();
+    else if (type === 'mechanics') fetchMechanics();
+    else fetchServices();
   };
 
-  const handleSaveMech = async (e) => {
-    e.preventDefault();
-    const method = editingId ? 'PUT' : 'POST';
-    const url = editingId ? `${API_URL}/api/mechanics/${editingId}` : `${API_URL}/api/mechanics`;
-    await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(mechForm)
-    });
-    closeModal();
-    fetchMechanics();
-  };
-
-  // --- DELETE HANDLERS ---
   const deleteItem = async (type, id) => {
     if (window.confirm(`Kya aap is ${type} ko delete karna chahte hain?`)) {
       await fetch(`${API_URL}/api/${type}s/${id}`, { method: 'DELETE' });
-      type === 'client' ? fetchClients() : fetchMechanics();
+      if (type === 'client') fetchClients();
+      else if (type === 'mechanic') fetchMechanics();
+      else fetchServices();
     }
   };
 
@@ -75,57 +86,37 @@ function App() {
     setEditingId(null);
     setClientForm({ firstname: '', lastname: '', contact: '', address: '' });
     setMechForm({ name: '', contact: '', email: '', status: 1 });
+    setServiceForm({ service: '', description: '', cost: '', status: 1 });
   };
-  
-  const [services, setServices] = useState([]);
-const [serviceForm, setServiceForm] = useState({ service: '', description: '', cost: '', status: 1 });
-
-const fetchServices = async () => {
-  const res = await fetch(`${API_URL}/api/services`);
-  const data = await res.json();
-  setServices(data);
-};
-
-
 
   return (
     <div className="app-layout">
-      {/* SIDEBAR NAVIGATION */}
       <nav className="sidebar">
-        <div className="logo">
-          <h2>V-TECH</h2>
-          <p>Repair Shop Panel</p>
-        </div>
+        <div className="logo"><h2>V-TECH</h2><p>Repair Panel</p></div>
         <ul>
           <li className={activeTab === 'dashboard' ? 'active' : ''} onClick={() => setActiveTab('dashboard')}>Dashboard</li>
           <li className={activeTab === 'clients' ? 'active' : ''} onClick={() => setActiveTab('clients')}>Clients</li>
           <li className={activeTab === 'mechanics' ? 'active' : ''} onClick={() => setActiveTab('mechanics')}>Mechanics</li>
-		  <li className={activeTab === 'services' ? 'active' : ''} onClick={() => setActiveTab('services')}>Services</li>
+          <li className={activeTab === 'services' ? 'active' : ''} onClick={() => setActiveTab('services')}>Services</li>
           <li>Job Sheets</li>
-          <li>Inventory</li>
         </ul>
       </nav>
 
-      {/* MAIN CONTENT AREA */}
       <main className="main-content">
-        
-        {/* CLIENTS TAB */}
+        {/* CLIENTS VIEW */}
         {activeTab === 'clients' && (
           <div className="tab-view">
             <div className="view-header">
-              <h2>Client Management</h2>
+              <h2>Clients</h2>
               <button className="btn-primary" onClick={() => setShowModal(true)}>+ Add Client</button>
             </div>
             <table className="custom-table">
-              <thead>
-                <tr><th>Name</th><th>Contact</th><th>Address</th><th>Actions</th></tr>
-              </thead>
+              <thead><tr><th>Name</th><th>Contact</th><th>Actions</th></tr></thead>
               <tbody>
                 {clients.map(c => (
                   <tr key={c._id}>
                     <td>{c.firstname} {c.lastname}</td>
                     <td>{c.contact}</td>
-                    <td>{c.address || 'N/A'}</td>
                     <td>
                       <button className="btn-edit" onClick={() => {setEditingId(c._id); setClientForm(c); setShowModal(true);}}>Edit</button>
                       <button className="btn-del" onClick={() => deleteItem('client', c._id)}>Del</button>
@@ -137,23 +128,19 @@ const fetchServices = async () => {
           </div>
         )}
 
-        {/* MECHANICS TAB */}
+        {/* MECHANICS VIEW */}
         {activeTab === 'mechanics' && (
           <div className="tab-view">
             <div className="view-header">
-              <h2>Mechanic List</h2>
+              <h2>Mechanics</h2>
               <button className="btn-primary" onClick={() => setShowModal(true)}>+ Add Mechanic</button>
             </div>
             <table className="custom-table">
-              <thead>
-                <tr><th>Name</th><th>Contact</th><th>Email</th><th>Status</th><th>Actions</th></tr>
-              </thead>
+              <thead><tr><th>Name</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>
                 {mechanics.map(m => (
                   <tr key={m._id}>
                     <td>{m.name}</td>
-                    <td>{m.contact}</td>
-                    <td>{m.email}</td>
                     <td><span className={m.status === 1 ? 'status-active' : 'status-inactive'}>{m.status === 1 ? 'Active' : 'Inactive'}</span></td>
                     <td>
                       <button className="btn-edit" onClick={() => {setEditingId(m._id); setMechForm(m); setShowModal(true);}}>Edit</button>
@@ -165,59 +152,63 @@ const fetchServices = async () => {
             </table>
           </div>
         )}
-		
-		{activeTab === 'services' && (
-  <div className="tab-view">
-    <div className="view-header">
-      <h2>Service Rate List</h2>
-      <button className="btn-primary" onClick={() => setShowModal(true)}>+ Add New Service</button>
-    </div>
-    <table className="custom-table">
-      <thead>
-        <tr><th>Service Name</th><th>Description</th><th>Cost</th><th>Status</th><th>Actions</th></tr>
-      </thead>
-      <tbody>
-        {services.map(s => (
-          <tr key={s._id}>
-            <td><strong>{s.service}</strong></td>
-            <td>{s.description}</td>
-            <td>₹{s.cost}</td>
-            <td><span className={s.status === 1 ? 'status-active' : 'status-inactive'}>{s.status === 1 ? 'Active' : 'Inactive'}</span></td>
-            <td>
-              <button className="btn-del" onClick={() => deleteItem('service', s._id)}>Del</button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-)}
 
-        {activeTab === 'dashboard' && <h2>Welcome to Dashboard</h2>}
+        {/* SERVICES VIEW */}
+        {activeTab === 'services' && (
+          <div className="tab-view">
+            <div className="view-header">
+              <h2>Service Rates</h2>
+              <button className="btn-primary" onClick={() => setShowModal(true)}>+ Add Service</button>
+            </div>
+            <table className="custom-table">
+              <thead><tr><th>Service</th><th>Cost</th><th>Actions</th></tr></thead>
+              <tbody>
+                {services.map(s => (
+                  <tr key={s._id}>
+                    <td>{s.service}</td>
+                    <td>₹{s.cost}</td>
+                    <td>
+                      <button className="btn-del" onClick={() => deleteItem('service', s._id)}>Del</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === 'dashboard' && <h2>Dashboard Overview</h2>}
       </main>
 
-      {/* DYNAMIC MODAL FOR BOTH TABS */}
+      {/* DYNAMIC MODAL */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h3>{editingId ? 'Edit' : 'Add New'} {activeTab === 'clients' ? 'Client' : 'Mechanic'}</h3>
-            <form onSubmit={activeTab === 'clients' ? handleSaveClient : handleSaveMech}>
-              {activeTab === 'clients' ? (
+            <h3>{editingId ? 'Edit' : 'Add New'} {activeTab}</h3>
+            <form onSubmit={handleSave}>
+              {activeTab === 'clients' && (
                 <>
                   <input placeholder="First Name" value={clientForm.firstname} onChange={(e)=>setClientForm({...clientForm, firstname: e.target.value})} required />
                   <input placeholder="Last Name" value={clientForm.lastname} onChange={(e)=>setClientForm({...clientForm, lastname: e.target.value})} required />
                   <input placeholder="Contact" value={clientForm.contact} onChange={(e)=>setClientForm({...clientForm, contact: e.target.value})} required />
                   <textarea placeholder="Address" value={clientForm.address} onChange={(e)=>setClientForm({...clientForm, address: e.target.value})}></textarea>
                 </>
-              ) : (
+              )}
+              {activeTab === 'mechanics' && (
                 <>
                   <input placeholder="Full Name" value={mechForm.name} onChange={(e)=>setMechForm({...mechForm, name: e.target.value})} required />
                   <input placeholder="Contact" value={mechForm.contact} onChange={(e)=>setMechForm({...mechForm, contact: e.target.value})} required />
-                  <input placeholder="Email" type="email" value={mechForm.email} onChange={(e)=>setMechForm({...mechForm, email: e.target.value})} required />
                   <select value={mechForm.status} onChange={(e)=>setMechForm({...mechForm, status: parseInt(e.target.value)})}>
                     <option value={1}>Active</option>
                     <option value={0}>Inactive</option>
                   </select>
+                </>
+              )}
+              {activeTab === 'services' && (
+                <>
+                  <input placeholder="Service Name (e.g. Screen Replacement)" value={serviceForm.service} onChange={(e)=>setServiceForm({...serviceForm, service: e.target.value})} required />
+                  <input placeholder="Cost" type="number" value={serviceForm.cost} onChange={(e)=>setServiceForm({...serviceForm, cost: e.target.value})} required />
+                  <textarea placeholder="Description" value={serviceForm.description} onChange={(e)=>setServiceForm({...serviceForm, description: e.target.value})}></textarea>
                 </>
               )}
               <div className="modal-actions">
