@@ -1,74 +1,77 @@
 const express = require('express');
-const cors = require('cors');
 const mongoose = require('mongoose');
+const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
 const app = express();
-
-// Middlewares
-app.use(cors());
 app.use(express.json());
+app.use(cors());
 
-// 1. Database Connection Logic (Local aur Cloud dono ke liye)
-const dbURI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/vtechDB';
+// MongoDB Connection
+mongoose.connect(process.env.MONGO_URI || 'aapka_mongodb_url_yahan')
+  .then(() => console.log("Repair DB Connected"))
+  .catch(err => console.log(err));
 
-mongoose.connect(dbURI)
-    .then(() => console.log("Database se connection jud gaya hai! ✅"))
-    .catch((err) => console.error("Database connection error: ", err));
+// --- SCHEMAS (Based on your SQL file) ---
 
-// 2. Schema aur Model
-const MessageSchema = new mongoose.Schema({
-    text: String
+// 1. User/Admin Schema
+const UserSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  type: { type: Number, default: 2 } // 1 for Admin, 2 for Staff
 });
-const Message = mongoose.model('Message', MessageSchema);
+const User = mongoose.model('User', UserSchema);
 
-// 3. API Routes
-// GET: Saare messages dikhane ke liye
-app.get('/api/message', async (req, res) => {
-    try {
-        const data = await Message.find();
-        res.json(data);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+// 2. Service Schema (Mobile/Laptop Repair Services)
+const ServiceSchema = new mongoose.Schema({
+  service: String,
+  description: String,
+  cost: Number,
+  status: { type: Number, default: 1 } // 1: Active, 0: Inactive
 });
+const Service = mongoose.model('Service', ServiceSchema);
 
-// POST: Naya message save karne ke liye
-app.post('/api/save', async (req, res) => {
-    try {
-        const newMessage = new Message({ text: req.body.text });
-        await newMessage.save();
-        res.json({ success: true, message: "Data save ho gaya!" });
-    } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
-    }
+// 3. Transaction/Job Card Schema
+const TransactionSchema = new mongoose.Schema({
+  tracking_code: String,
+  customer_name: String,
+  contact: String,
+  device_model: String,
+  problem: String,
+  total_amount: Number,
+  status: { type: Number, default: 0 }, // 0: Pending, 1: In-Progress, 2: Done, 3: Delivered
+  date_created: { type: Date, default: Date.now }
 });
+const Transaction = mongoose.model('Transaction', TransactionSchema);
 
-// PUT: Purana message edit karne ke liye
-app.put('/api/message/:id', async (req, res) => {
-    try {
-        const updatedMessage = await Message.findByIdAndUpdate(
-            req.params.id, 
-            { text: req.body.text }, 
-            { new: true }
-        );
-        res.json({ success: true, updatedMessage });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+// --- ROUTES ---
 
-// DELETE: Message hatane ke liye
-app.delete('/api/message/:id', async (req, res) => {
-    try {
-        await Message.findByIdAndDelete(req.params.id);
-        res.json({ success: true, message: "Delete ho gaya!" });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+// Login API
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body;
+  const user = await User.findOne({ username });
+  if (user && await bcrypt.compare(password, user.password)) {
+    const token = jwt.sign({ id: user._id }, 'vtech_secret', { expiresIn: '1h' });
+    res.json({ success: true, token });
+  } else {
+    res.status(401).json({ success: false, message: "Invalid Credentials" });
+  }
 });
 
-// 4. Port Configuration (Render ke liye zaroori)
+// Save New Repair (Job Card)
+app.post('/api/repairs', async (req, res) => {
+  const newRepair = new Transaction(req.body);
+  await newRepair.save();
+  res.json({ success: true });
+});
+
+// Get All Repairs
+app.get('/api/repairs', async (req, res) => {
+  const list = await Transaction.find().sort({ date_created: -1 });
+  res.json(list);
+});
+
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`Server chalu hai: http://localhost:${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

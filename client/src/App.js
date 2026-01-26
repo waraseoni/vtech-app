@@ -4,86 +4,124 @@ import './App.css';
 const API_URL = "https://vtech-app.onrender.com";
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Login check karne ke liye
-  const [messages, setMessages] = useState([]);
-  const [inputText, setInputText] = useState("");
-  const [editId, setEditId] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [repairs, setRepairs] = useState([]);
+  
+  // Form State (SQL file ke names ke hisab se)
+  const [formData, setFormData] = useState({
+    customer_name: '',
+    contact: '',
+    device_model: '',
+    problem: '',
+    total_amount: ''
+  });
 
-  // Data fetch karne ka function
-  const fetchData = () => {
-    fetch(`${API_URL}/api/message`)
-      .then(res => res.json())
-      .then(json => setMessages(json))
-      .catch(err => console.log(err));
+  const fetchData = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/repairs`);
+      const data = await res.json();
+      setRepairs(data);
+    } catch (err) { console.log(err); }
   };
 
   useEffect(() => {
     if (isLoggedIn) fetchData();
   }, [isLoggedIn]);
 
-  // Login handler (Abhi ke liye sirf button click par login ho jayega)
-  const handleLogin = () => setIsLoggedIn(true);
-  const handleLogout = () => setIsLoggedIn(false);
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
-  // --- Agar Login NAHI hai toh ye dikhega (Landing Page) ---
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const tracking_code = "VTR-" + Math.floor(100000 + Math.random() * 900000); // Unique ID
+    
+    await fetch(`${API_URL}/api/repairs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...formData, tracking_code })
+    });
+    
+    setFormData({ customer_name: '', contact: '', device_model: '', problem: '', total_amount: '' });
+    fetchData();
+    alert("Repair Job Card Created! Tracking ID: " + tracking_code);
+  };
+
   if (!isLoggedIn) {
     return (
-      <div className="landing-page">
-        <nav className="navbar">
-          <div className="logo">V-Tech Repair</div>
-          <button className="login-nav-btn" onClick={handleLogin}>Login</button>
-        </nav>
-        
-        <header className="hero-section">
-          <h1>Modern Repair Shop Management</h1>
-          <p>Apne repair business ko digital banayein. Mobile, Laptop aur Gadgets ka hisab-kitab ab ek hi jagah.</p>
-          <button className="get-started-btn" onClick={handleLogin}>Get Started Free</button>
-        </header>
-
-        <section className="features">
-          <div className="feature-card"><h3>Job Cards</h3><p>Naye repairs ki entry karein.</p></div>
-          <div className="feature-card"><h3>Inventory</h3><p>Parts ka stock check karein.</p></div>
-          <div className="feature-card"><h3>Invoicing</h3><p>Turant bill banayein.</p></div>
-        </section>
+      <div className="login-screen">
+        <div className="login-card">
+          <h2>V-Tech Admin Login</h2>
+          <input type="text" placeholder="Username" />
+          <input type="password" placeholder="Password" />
+          <button className="btn-login" onClick={() => setIsLoggedIn(true)}>Login</button>
+        </div>
       </div>
     );
   }
 
-  // --- Agar Login HAI toh ye dikhega (Dashboard) ---
   return (
-    <div className="dashboard-container">
-      <aside className="sidebar">
-        <h2>V-Tech</h2>
+    <div className="app-layout">
+      {/* Sidebar */}
+      <nav className="sidebar">
+        <h3>V-TECH REPAIR</h3>
         <ul>
           <li className="active">Dashboard</li>
-          <li>Repairs List</li>
+          <li>Mechanics</li>
           <li>Inventory</li>
-          <li onClick={handleLogout} className="logout-item">Logout</li>
+          <li onClick={() => setIsLoggedIn(false)}>Logout</li>
         </ul>
-      </aside>
+      </nav>
 
+      {/* Main Content */}
       <main className="main-content">
-        <header className="dash-header">
-          <h2>Welcome, Vikram!</h2>
-          <button className="btn-logout" onClick={handleLogout}>Logout</button>
+        <header className="header">
+          <h2>Repair Management Dashboard</h2>
         </header>
 
-        {/* Aapka purana Logic yahan hai */}
-        <div className="dash-card">
-          <div className="input-group">
-            <input 
-              value={inputText} 
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="Naya Repair Note likhein..."
-            />
-            <button className="btn-save" onClick={() => {/* handleSave logic */}}>Save</button>
-          </div>
-          <ul className="message-list">
-            {messages.map((m) => (
-              <li key={m._id} className="message-item">{m.text}</li>
-            ))}
-          </ul>
-        </div>
+        {/* Entry Form */}
+        <section className="form-section">
+          <form className="repair-form" onSubmit={handleSubmit}>
+            <h3>New Job Card</h3>
+            <div className="form-grid">
+              <input name="customer_name" placeholder="Customer Name" value={formData.customer_name} onChange={handleInputChange} required />
+              <input name="contact" placeholder="Mobile Number" value={formData.contact} onChange={handleInputChange} required />
+              <input name="device_model" placeholder="Device Model (e.g. iPhone 13)" value={formData.device_model} onChange={handleInputChange} required />
+              <input name="total_amount" type="number" placeholder="Estimated Cost" value={formData.total_amount} onChange={handleInputChange} required />
+              <textarea name="problem" placeholder="Describe the Problem" value={formData.problem} onChange={handleInputChange} required></textarea>
+            </div>
+            <button type="submit" className="btn-submit">Save Repair Entry</button>
+          </form>
+        </section>
+
+        {/* Transaction Table */}
+        <section className="table-section">
+          <h3>Recent Transactions</h3>
+          <table className="repair-table">
+            <thead>
+              <tr>
+                <th>Tracking Code</th>
+                <th>Customer</th>
+                <th>Device</th>
+                <th>Problem</th>
+                <th>Status</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {repairs.map((r) => (
+                <tr key={r._id}>
+                  <td><strong>{r.tracking_code}</strong></td>
+                  <td>{r.customer_name}<br/><small>{r.contact}</small></td>
+                  <td>{r.device_model}</td>
+                  <td>{r.problem}</td>
+                  <td><span className={`status s-${r.status}`}>Pending</span></td>
+                  <td>₹{r.total_amount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
       </main>
     </div>
   );
