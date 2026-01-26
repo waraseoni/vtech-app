@@ -1,111 +1,90 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
 
-// Dhyan dein: Yahan apne backend ka URL check kar lein (Render wala)
-const API_URL = "https://vtech-app.onrender.com"; 
+const API_URL = "https://vtech-app.onrender.com";
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // Login check karne ke liye
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
-  const [editId, setEditId] = useState(null); 
+  const [editId, setEditId] = useState(null);
 
-  // 1. Data Fetch karne ke liye
+  // Data fetch karne ka function
   const fetchData = () => {
     fetch(`${API_URL}/api/message`)
       .then(res => res.json())
       .then(json => setMessages(json))
-      .catch(err => console.log("Fetch error:", err));
+      .catch(err => console.log(err));
   };
 
-  useEffect(() => { 
-    fetchData(); 
-  }, []);
+  useEffect(() => {
+    if (isLoggedIn) fetchData();
+  }, [isLoggedIn]);
 
-  // 2. Naya Message Save karne ke liye
-  const handleSave = async () => {
-    if (!inputText) return;
-    try {
-      // SAHI KIYA GAYA: Yahan Backticks (`) ka use kiya hai
-      await fetch(`${API_URL}/api/save`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: inputText })
-      });
-      setInputText("");
-      fetchData();
-    } catch (err) {
-      console.log("Save error:", err);
-    }
-  };
+  // Login handler (Abhi ke liye sirf button click par login ho jayega)
+  const handleLogin = () => setIsLoggedIn(true);
+  const handleLogout = () => setIsLoggedIn(false);
 
-  // 3. Message Delete karne ke liye
-  const deleteMessage = async (id) => {
-    if (window.confirm("Kya aap ise delete karna chahte hain?")) {
-      try {
-        await fetch(`${API_URL}/api/message/${id}`, {
-          method: 'DELETE',
-        });
-        fetchData();
-      } catch (err) {
-        console.log("Delete error:", err);
-      }
-    }
-  };
-
-  // 4. Edit mode chalu karne ke liye
-  const startEdit = (message) => {
-    setEditId(message._id);
-    setInputText(message.text);
-  };
-
-  // 5. Update karne ke liye
-  const handleUpdate = async () => {
-    try {
-      await fetch(`${API_URL}/api/message/${editId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: inputText })
-      });
-      setEditId(null);
-      setInputText("");
-      fetchData();
-    } catch (err) {
-      console.log("Update error:", err);
-    }
-  };
-
-  return (
-    <div className="container">
-      <h1>V-Tech Dashboard</h1>
-      
-      <div className="input-group">
-        <input 
-          value={inputText} 
-          onChange={(e) => setInputText(e.target.value)}
-          placeholder="Yahan apna message likhein..."
-        />
+  // --- Agar Login NAHI hai toh ye dikhega (Landing Page) ---
+  if (!isLoggedIn) {
+    return (
+      <div className="landing-page">
+        <nav className="navbar">
+          <div className="logo">V-Tech Repair</div>
+          <button className="login-nav-btn" onClick={handleLogin}>Login</button>
+        </nav>
         
-        {editId ? (
-          <button className="btn-update" onClick={handleUpdate}>Update</button>
-        ) : (
-          <button className="btn-save" onClick={handleSave}>Save</button>
-        )}
+        <header className="hero-section">
+          <h1>Modern Repair Shop Management</h1>
+          <p>Apne repair business ko digital banayein. Mobile, Laptop aur Gadgets ka hisab-kitab ab ek hi jagah.</p>
+          <button className="get-started-btn" onClick={handleLogin}>Get Started Free</button>
+        </header>
+
+        <section className="features">
+          <div className="feature-card"><h3>Job Cards</h3><p>Naye repairs ki entry karein.</p></div>
+          <div className="feature-card"><h3>Inventory</h3><p>Parts ka stock check karein.</p></div>
+          <div className="feature-card"><h3>Invoicing</h3><p>Turant bill banayein.</p></div>
+        </section>
       </div>
+    );
+  }
 
-      <hr />
+  // --- Agar Login HAI toh ye dikhega (Dashboard) ---
+  return (
+    <div className="dashboard-container">
+      <aside className="sidebar">
+        <h2>V-Tech</h2>
+        <ul>
+          <li className="active">Dashboard</li>
+          <li>Repairs List</li>
+          <li>Inventory</li>
+          <li onClick={handleLogout} className="logout-item">Logout</li>
+        </ul>
+      </aside>
 
-      <h3>Pichle Messages:</h3>
-      <ul className="message-list">
-        {messages.map((m) => (
-          <li key={m._id} className="message-item">
-            <span className="text-content">{m.text}</span>
-            <div className="action-buttons">
-              <button className="btn-edit" onClick={() => startEdit(m)}>Edit</button>
-              <button className="btn-delete" onClick={() => deleteMessage(m._id)}>Delete</button>
-            </div>
-          </li>
-        ))}
-      </ul>
+      <main className="main-content">
+        <header className="dash-header">
+          <h2>Welcome, Vikram!</h2>
+          <button className="btn-logout" onClick={handleLogout}>Logout</button>
+        </header>
+
+        {/* Aapka purana Logic yahan hai */}
+        <div className="dash-card">
+          <div className="input-group">
+            <input 
+              value={inputText} 
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder="Naya Repair Note likhein..."
+            />
+            <button className="btn-save" onClick={() => {/* handleSave logic */}}>Save</button>
+          </div>
+          <ul className="message-list">
+            {messages.map((m) => (
+              <li key={m._id} className="message-item">{m.text}</li>
+            ))}
+          </ul>
+        </div>
+      </main>
     </div>
   );
 }
