@@ -102,3 +102,15 @@ app.get('/api/clients', async (req, res) => {
   const clients = await Client.find().sort({ firstname: 1 });
   res.json(clients);
 });
+
+// DELETE Client
+app.delete('/api/clients/:id', async (req, res) => {
+  await Client.findByIdAndDelete(req.params.id);
+  res.json({ success: true, message: "Client Deleted" });
+});
+
+// UPDATE Client
+app.put('/api/clients/:id', async (req, res) => {
+  await Client.findByIdAndUpdate(req.params.id, req.body);
+  res.json({ success: true, message: "Client Updated" });
+});

@@ -4,191 +4,133 @@ import './App.css';
 const API_URL = "https://vtech-app.onrender.com";
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [repairs, setRepairs] = useState([]);
-  
-  // State for Clients
-const [clients, setClients] = useState([]);
-const [clientForm, setClientForm] = useState({ firstname: '', lastname: '', contact: '', address: '' });
-
-// Fetch Clients
-const fetchClients = async () => {
-  const res = await fetch(`${API_URL}/api/clients`);
-  const data = await res.json();
-  setClients(data);
-};
-
-// Add Client Handler
-const handleClientSubmit = async (e) => {
-  e.preventDefault();
-  const res = await fetch(`${API_URL}/api/clients`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(clientForm)
-  });
-  const data = await res.json();
-  if(data.success) {
-    alert("Client Added!");
-    setClientForm({ firstname: '', lastname: '', contact: '', address: '' });
-    fetchClients();
-  } else {
-    alert(data.message);
-  }
-};
-  
-  
-  // Form State (SQL file ke names ke hisab se)
-  const [formData, setFormData] = useState({
-    customer_name: '',
-    contact: '',
-    device_model: '',
-    problem: '',
-    total_amount: ''
-  });
-
-  const fetchData = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/repairs`);
-      const data = await res.json();
-      setRepairs(data);
-    } catch (err) { console.log(err); }
-  };
+  const [activeTab, setActiveTab] = useState('dashboard'); // Navigation ke liye
+  const [clients, setClients] = useState([]);
+  const [showModal, setShowModal] = useState(false); // Add/Edit Popup ke liye
+  const [clientForm, setClientForm] = useState({ firstname: '', lastname: '', contact: '', address: '' });
+  const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
-    if (isLoggedIn) fetchData();
-  }, [isLoggedIn]);
+    fetchClients();
+  }, []);
 
-  const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const fetchClients = async () => {
+    const res = await fetch(`${API_URL}/api/clients`);
+    const data = await res.json();
+    setClients(data);
   };
 
-  const handleSubmit = async (e) => {
+  const handleSaveClient = async (e) => {
     e.preventDefault();
-    const tracking_code = "VTR-" + Math.floor(100000 + Math.random() * 900000); // Unique ID
-    
-    await fetch(`${API_URL}/api/repairs`, {
-      method: 'POST',
+    const method = editingId ? 'PUT' : 'POST';
+    const url = editingId ? `${API_URL}/api/clients/${editingId}` : `${API_URL}/api/clients`;
+
+    await fetch(url, {
+      method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...formData, tracking_code })
+      body: JSON.stringify(clientForm)
     });
-    
-    setFormData({ customer_name: '', contact: '', device_model: '', problem: '', total_amount: '' });
-    fetchData();
-    alert("Repair Job Card Created! Tracking ID: " + tracking_code);
+
+    setClientForm({ firstname: '', lastname: '', contact: '', address: '' });
+    setShowModal(false);
+    setEditingId(null);
+    fetchClients();
   };
 
-  if (!isLoggedIn) {
-    return (
-      <div className="login-screen">
-        <div className="login-card">
-          <h2>V-Tech Admin Login</h2>
-          <input type="text" placeholder="Username" />
-          <input type="password" placeholder="Password" />
-          <button className="btn-login" onClick={() => setIsLoggedIn(true)}>Login</button>
-        </div>
-      </div>
-    );
-  }
+  const deleteClient = async (id) => {
+    if (window.confirm("Kya aap is client ko delete karna chahte hain?")) {
+      await fetch(`${API_URL}/api/clients/${id}`, { method: 'DELETE' });
+      fetchClients();
+    }
+  };
+
+  const startEdit = (client) => {
+    setEditingId(client._id);
+    setClientForm(client);
+    setShowModal(true);
+  };
 
   return (
     <div className="app-layout">
-      {/* Sidebar */}
+      {/* LEFT NAVIGATION */}
       <nav className="sidebar">
-        <h3>V-TECH REPAIR</h3>
+        <div className="logo-section">
+          <h2>V-TECH</h2>
+          <p>Repair Management</p>
+        </div>
         <ul>
-          <li className="active">Dashboard</li>
-          <li>Mechanics</li>
-          <li>Inventory</li>
-          <li onClick={() => setIsLoggedIn(false)}>Logout</li>
+          <li className={activeTab === 'dashboard' ? 'active' : ''} onClick={() => setActiveTab('dashboard')}>
+            <i className="icon">📊</i> Dashboard
+          </li>
+          <li className={activeTab === 'clients' ? 'active' : ''} onClick={() => setActiveTab('clients')}>
+            <i className="icon">👤</i> Clients
+          </li>
+          <li><i className="icon">🛠️</i> Services</li>
+          <li><i className="icon">📦</i> Inventory</li>
         </ul>
       </nav>
 
-      {/* Main Content */}
+      {/* MAIN CONTENT */}
       <main className="main-content">
-        <header className="header">
-          <h2>Repair Management Dashboard</h2>
-        </header>
-
-        {/* Entry Form */}
-        <section className="form-section">
-          <form className="repair-form" onSubmit={handleSubmit}>
-            <h3>New Job Card</h3>
-            <div className="form-grid">
-              <input name="customer_name" placeholder="Customer Name" value={formData.customer_name} onChange={handleInputChange} required />
-              <input name="contact" placeholder="Mobile Number" value={formData.contact} onChange={handleInputChange} required />
-              <input name="device_model" placeholder="Device Model (e.g. iPhone 13)" value={formData.device_model} onChange={handleInputChange} required />
-              <input name="total_amount" type="number" placeholder="Estimated Cost" value={formData.total_amount} onChange={handleInputChange} required />
-              <textarea name="problem" placeholder="Describe the Problem" value={formData.problem} onChange={handleInputChange} required></textarea>
+        {activeTab === 'clients' && (
+          <div className="client-container">
+            <div className="content-header">
+              <h2>Client Management</h2>
+              <button className="btn-add" onClick={() => { setShowModal(true); setEditingId(null); }}>
+                + Add New Client
+              </button>
             </div>
-            <button type="submit" className="btn-submit">Save Repair Entry</button>
-          </form>
-        </section>
-		
-		<section className="client-section">
-  <div className="card">
-    <h3>Add New Client</h3>
-    <form onSubmit={handleClientSubmit} className="form-grid">
-      <input placeholder="First Name" value={clientForm.firstname} onChange={(e)=>setClientForm({...clientForm, firstname: e.target.value})} required />
-      <input placeholder="Last Name" value={clientForm.lastname} onChange={(e)=>setClientForm({...clientForm, lastname: e.target.value})} required />
-      <input placeholder="Mobile Number" value={clientForm.contact} onChange={(e)=>setClientForm({...clientForm, contact: e.target.value})} required />
-      <input placeholder="Address" value={clientForm.address} onChange={(e)=>setClientForm({...clientForm, address: e.target.value})} />
-      <button type="submit" className="btn-save">Save Client</button>
-    </form>
-  </div>
 
-  <div className="table-container">
-    <h3>Registered Clients</h3>
-    <table className="repair-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Contact</th>
-          <th>Address</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {clients.map(c => (
-          <tr key={c._id}>
-            <td>{c.firstname} {c.lastname}</td>
-            <td>{c.contact}</td>
-            <td>{c.address}</td>
-            <td><button className="btn-edit">Create Job Sheet</button></td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-</section>
+            <div className="table-card">
+              <table className="custom-table">
+                <thead>
+                  <tr>
+                    <th>Client Name</th>
+                    <th>Contact</th>
+                    <th>Address</th>
+                    <th>Date Joined</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clients.map(c => (
+                    <tr key={c._id}>
+                      <td><strong>{c.firstname} {c.lastname}</strong></td>
+                      <td>{c.contact}</td>
+                      <td>{c.address || 'N/A'}</td>
+                      <td>{new Date(c.date_created).toLocaleDateString()}</td>
+                      <td className="actions">
+                        <button className="btn-edit-sm" onClick={() => startEdit(c)}>Edit</button>
+                        <button className="btn-delete-sm" onClick={() => deleteClient(c._id)}>Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
-        {/* Transaction Table */}
-        <section className="table-section">
-          <h3>Recent Transactions</h3>
-          <table className="repair-table">
-            <thead>
-              <tr>
-                <th>Tracking Code</th>
-                <th>Customer</th>
-                <th>Device</th>
-                <th>Problem</th>
-                <th>Status</th>
-                <th>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {repairs.map((r) => (
-                <tr key={r._id}>
-                  <td><strong>{r.tracking_code}</strong></td>
-                  <td>{r.customer_name}<br/><small>{r.contact}</small></td>
-                  <td>{r.device_model}</td>
-                  <td>{r.problem}</td>
-                  <td><span className={`status s-${r.status}`}>Pending</span></td>
-                  <td>₹{r.total_amount}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
+        {/* MODAL / POPUP FOR ADD/EDIT */}
+        {showModal && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <h3>{editingId ? "Edit Client" : "Add New Client"}</h3>
+              <form onSubmit={handleSaveClient}>
+                <div className="form-row">
+                  <input placeholder="First Name" value={clientForm.firstname} onChange={(e)=>setClientForm({...clientForm, firstname: e.target.value})} required />
+                  <input placeholder="Last Name" value={clientForm.lastname} onChange={(e)=>setClientForm({...clientForm, lastname: e.target.value})} required />
+                </div>
+                <input placeholder="Contact Number" value={clientForm.contact} onChange={(e)=>setClientForm({...clientForm, contact: e.target.value})} required />
+                <textarea placeholder="Address" value={clientForm.address} onChange={(e)=>setClientForm({...clientForm, address: e.target.value})}></textarea>
+                <div className="modal-btns">
+                  <button type="button" onClick={() => setShowModal(false)} className="btn-cancel">Cancel</button>
+                  <button type="submit" className="btn-save-main">Save Client</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
