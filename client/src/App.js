@@ -8,7 +8,7 @@ function App() {
   const [inputText, setInputText] = useState("");
 
   const fetchData = () => {
-    fetch('http://localhost:5000/api/message')
+    fetch(`${API_URL}/api/message`)
       .then(res => res.json())
       .then(json => setMessages(json))
       .catch(err => console.log(err));
@@ -18,7 +18,7 @@ function App() {
 
   const handleSave = async () => {
     if (!inputText) return;
-    await fetch('http://localhost:5000/api/save', {
+    await fetch('${API_URL}/api/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: inputText })
@@ -30,7 +30,7 @@ function App() {
   // --- 1. YEH NAYA FUNCTION JODEIN ---
   const deleteMessage = async (id) => {
     if (window.confirm("Kya aap ise delete karna chahte hain?")) {
-      await fetch(`http://localhost:5000/api/message/${id}`, {
+      await fetch(`${API_URL}/api/message/${id}`, {
         method: 'DELETE',
       });
       fetchData(); // Delete ke baad list refresh karein
@@ -48,7 +48,7 @@ const startEdit = (message) => {
 
 // Edit kiya hua data save karne ke liye (Naya Function)
 const handleUpdate = async () => {
-    await fetch(`http://localhost:5000/api/message/${editId}`, {
+    await fetch(`${API_URL}/api/message/${editId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: inputText })
