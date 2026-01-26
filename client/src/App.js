@@ -65,6 +65,10 @@ function App() {
           <li className={activeTab === 'clients' ? 'active' : ''} onClick={() => setActiveTab('clients')}>
             <i className="icon">👤</i> Clients
           </li>
+		  // Navigation menu mein ye line jodein
+<li className={activeTab === 'mechanics' ? 'active' : ''} onClick={() => setActiveTab('mechanics')}>
+  <i className="icon">🔧</i> Mechanics
+</li>
           <li><i className="icon">🛠️</i> Services</li>
           <li><i className="icon">📦</i> Inventory</li>
         </ul>
@@ -133,6 +137,33 @@ function App() {
         )}
       </main>
     </div>
+	
+	{activeTab === 'mechanics' && (
+  <div className="mechanic-container">
+    <div className="content-header">
+      <h2>Mechanic / Technician Management</h2>
+      <button className="btn-add" onClick={() => {/* Modal Open logic */}}>
+        + Add New Mechanic
+      </button>
+    </div>
+    <div className="table-card">
+      <table className="custom-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Contact</th>
+            <th>Email</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {/* mechanics.map yahan aayega */}
+        </tbody>
+      </table>
+    </div>
+  </div>
+)}
   );
 }
 

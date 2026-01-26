@@ -57,6 +57,39 @@ app.put('/api/clients/:id', async (req, res) => {
   res.json({ success: true });
 });
 
+// --- MECHANIC SCHEMA ---
+const MechanicSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  contact: String,
+  email: String,
+  status: { type: Number, default: 1 }, // 1: Active, 0: Inactive
+  date_created: { type: Date, default: Date.now }
+});
+const Mechanic = mongoose.model('Mechanic', MechanicSchema);
+
+// --- MECHANIC ROUTES ---
+
+// Get All Mechanics
+app.get('/api/mechanics', async (req, res) => {
+  try {
+    const list = await Mechanic.find().sort({ name: 1 });
+    res.json(list);
+  } catch (err) { res.status(500).json(err); }
+});
+
+// Add New Mechanic
+app.post('/api/mechanics', async (req, res) => {
+  const newMech = new Mechanic(req.body);
+  await newMech.save();
+  res.json({ success: true });
+});
+
+// Delete Mechanic
+app.delete('/api/mechanics/:id', async (req, res) => {
+  await Mechanic.findByIdAndDelete(req.params.id);
+  res.json({ success: true });
+});
+
 // --- SABSE AAKHIR MEIN LISTEN KAREIN ---
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
