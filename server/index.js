@@ -162,6 +162,45 @@ app.delete('/api/products/:id', async (req, res) => {
   res.json({ success: true });
 });
 
+// 1. Product Registry (Fixing existing schema)
+const ProductSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true },
+  description: String,
+  purchase_price: Number, 
+  sell_price: Number,
+  current_stock: { type: Number, default: 0 } // Ye automatically update hoga
+});
+const Product = mongoose.model('Product', ProductSchema);
+
+// 2. Stock Movement Log (Naya Schema)
+const StockLogSchema = new mongoose.Schema({
+  productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+  type: { type: String, enum: ['IN', 'OUT'] }, // IN = Purchase, OUT = Sale/JobSheet
+  quantity: Number,
+  remarks: String, // e.g., "New stock arrived" or "Used in Job #101"
+  date: { type: Date, default: Date.now }
+});
+const StockLog = mongoose.model('StockLog', StockLogSchema);
+
+// --- ROUTES ---
+
+// Stock Update API (Jab aap naya stock kharidte hain)
+app.post('/api/inventory/update-stock', async (req, res) => {
+  const { productId, quantity, type, remarks } = req.body;
+  
+  // 1. Log create karein
+  const log = new StockLog({ productId, quantity, type, remarks });
+  await log.save();
+
+  // 2. Main Product table mein stock update karein
+  const product = await Product.findById(productId);
+  if (type === 'IN') product.current_stock += parseInt(quantity);
+  else product.current_stock -= parseInt(quantity);
+  
+  await product.save();
+  res.json({ success: true, current_stock: product.current_stock });
+});
+
 // --- SABSE AAKHIR MEIN LISTEN KAREIN ---
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
