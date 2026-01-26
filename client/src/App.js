@@ -7,6 +7,36 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [repairs, setRepairs] = useState([]);
   
+  // State for Clients
+const [clients, setClients] = useState([]);
+const [clientForm, setClientForm] = useState({ firstname: '', lastname: '', contact: '', address: '' });
+
+// Fetch Clients
+const fetchClients = async () => {
+  const res = await fetch(`${API_URL}/api/clients`);
+  const data = await res.json();
+  setClients(data);
+};
+
+// Add Client Handler
+const handleClientSubmit = async (e) => {
+  e.preventDefault();
+  const res = await fetch(`${API_URL}/api/clients`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(clientForm)
+  });
+  const data = await res.json();
+  if(data.success) {
+    alert("Client Added!");
+    setClientForm({ firstname: '', lastname: '', contact: '', address: '' });
+    fetchClients();
+  } else {
+    alert(data.message);
+  }
+};
+  
+  
   // Form State (SQL file ke names ke hisab se)
   const [formData, setFormData] = useState({
     customer_name: '',
@@ -93,6 +123,43 @@ function App() {
             <button type="submit" className="btn-submit">Save Repair Entry</button>
           </form>
         </section>
+		
+		<section className="client-section">
+  <div className="card">
+    <h3>Add New Client</h3>
+    <form onSubmit={handleClientSubmit} className="form-grid">
+      <input placeholder="First Name" value={clientForm.firstname} onChange={(e)=>setClientForm({...clientForm, firstname: e.target.value})} required />
+      <input placeholder="Last Name" value={clientForm.lastname} onChange={(e)=>setClientForm({...clientForm, lastname: e.target.value})} required />
+      <input placeholder="Mobile Number" value={clientForm.contact} onChange={(e)=>setClientForm({...clientForm, contact: e.target.value})} required />
+      <input placeholder="Address" value={clientForm.address} onChange={(e)=>setClientForm({...clientForm, address: e.target.value})} />
+      <button type="submit" className="btn-save">Save Client</button>
+    </form>
+  </div>
+
+  <div className="table-container">
+    <h3>Registered Clients</h3>
+    <table className="repair-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Contact</th>
+          <th>Address</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {clients.map(c => (
+          <tr key={c._id}>
+            <td>{c.firstname} {c.lastname}</td>
+            <td>{c.contact}</td>
+            <td>{c.address}</td>
+            <td><button className="btn-edit">Create Job Sheet</button></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</section>
 
         {/* Transaction Table */}
         <section className="table-section">

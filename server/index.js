@@ -75,3 +75,30 @@ app.get('/api/repairs', async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// Client Schema
+const ClientSchema = new mongoose.Schema({
+  firstname: String,
+  lastname: String,
+  contact: { type: String, unique: true },
+  address: String,
+  date_created: { type: Date, default: Date.now }
+});
+const Client = mongoose.model('Client', ClientSchema);
+
+// API to Save Client
+app.post('/api/clients', async (req, res) => {
+  try {
+    const newClient = new Client(req.body);
+    await newClient.save();
+    res.json({ success: true, client: newClient });
+  } catch (err) {
+    res.status(400).json({ success: false, message: "Contact number already exists!" });
+  }
+});
+
+// API to Get All Clients
+app.get('/api/clients', async (req, res) => {
+  const clients = await Client.find().sort({ firstname: 1 });
+  res.json(clients);
+});
