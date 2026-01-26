@@ -125,6 +125,43 @@ app.delete('/api/services/:id', async (req, res) => {
   res.json({ success: true });
 });
 
+// --- PRODUCT / INVENTORY SCHEMA ---
+const ProductSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  description: String,
+  purchase_price: Number, // Jis price pe aapne kharida
+  sell_price: Number,     // Jis price pe aap customer ko denge
+  quantity: { type: Number, default: 0 }, // Current Stock
+  status: { type: Number, default: 1 },
+  date_created: { type: Date, default: Date.now }
+});
+const Product = mongoose.model('Product', ProductSchema);
+
+// --- PRODUCT ROUTES ---
+
+// Get All Products
+app.get('/api/products', async (req, res) => {
+  const list = await Product.find().sort({ name: 1 });
+  res.json(list);
+});
+
+// Add/Update Product
+app.post('/api/products', async (req, res) => {
+  const newProd = new Product(req.body);
+  await newProd.save();
+  res.json({ success: true });
+});
+
+app.put('/api/products/:id', async (req, res) => {
+  await Product.findByIdAndUpdate(req.params.id, req.body);
+  res.json({ success: true });
+});
+
+app.delete('/api/products/:id', async (req, res) => {
+  await Product.findByIdAndDelete(req.params.id);
+  res.json({ success: true });
+});
+
 // --- SABSE AAKHIR MEIN LISTEN KAREIN ---
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
