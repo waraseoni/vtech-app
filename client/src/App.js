@@ -19,6 +19,7 @@ function App() {
   useEffect(() => {
     fetchClients();
     fetchMechanics();
+	fetchServices();
   }, []);
 
   // --- API CALLS ---
@@ -75,6 +76,17 @@ function App() {
     setClientForm({ firstname: '', lastname: '', contact: '', address: '' });
     setMechForm({ name: '', contact: '', email: '', status: 1 });
   };
+  
+  const [services, setServices] = useState([]);
+const [serviceForm, setServiceForm] = useState({ service: '', description: '', cost: '', status: 1 });
+
+const fetchServices = async () => {
+  const res = await fetch(`${API_URL}/api/services`);
+  const data = await res.json();
+  setServices(data);
+};
+
+
 
   return (
     <div className="app-layout">
@@ -88,6 +100,7 @@ function App() {
           <li className={activeTab === 'dashboard' ? 'active' : ''} onClick={() => setActiveTab('dashboard')}>Dashboard</li>
           <li className={activeTab === 'clients' ? 'active' : ''} onClick={() => setActiveTab('clients')}>Clients</li>
           <li className={activeTab === 'mechanics' ? 'active' : ''} onClick={() => setActiveTab('mechanics')}>Mechanics</li>
+		  <li className={activeTab === 'services' ? 'active' : ''} onClick={() => setActiveTab('services')}>Services</li>
           <li>Job Sheets</li>
           <li>Inventory</li>
         </ul>
@@ -152,6 +165,33 @@ function App() {
             </table>
           </div>
         )}
+		
+		{activeTab === 'services' && (
+  <div className="tab-view">
+    <div className="view-header">
+      <h2>Service Rate List</h2>
+      <button className="btn-primary" onClick={() => setShowModal(true)}>+ Add New Service</button>
+    </div>
+    <table className="custom-table">
+      <thead>
+        <tr><th>Service Name</th><th>Description</th><th>Cost</th><th>Status</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {services.map(s => (
+          <tr key={s._id}>
+            <td><strong>{s.service}</strong></td>
+            <td>{s.description}</td>
+            <td>₹{s.cost}</td>
+            <td><span className={s.status === 1 ? 'status-active' : 'status-inactive'}>{s.status === 1 ? 'Active' : 'Inactive'}</span></td>
+            <td>
+              <button className="btn-del" onClick={() => deleteItem('service', s._id)}>Del</button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
 
         {activeTab === 'dashboard' && <h2>Welcome to Dashboard</h2>}
       </main>

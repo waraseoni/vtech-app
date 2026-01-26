@@ -90,6 +90,41 @@ app.delete('/api/mechanics/:id', async (req, res) => {
   res.json({ success: true });
 });
 
+// --- SERVICE SCHEMA ---
+const ServiceSchema = new mongoose.Schema({
+  service: { type: String, required: true },
+  description: String,
+  cost: { type: Number, required: true },
+  status: { type: Number, default: 1 }, // 1: Active, 0: Inactive
+  date_created: { type: Date, default: Date.now }
+});
+const Service = mongoose.model('Service', ServiceSchema);
+
+// --- SERVICE ROUTES ---
+
+// Get all services
+app.get('/api/services', async (req, res) => {
+  try {
+    const services = await Service.find().sort({ service: 1 });
+    res.json(services);
+  } catch (err) { res.status(500).json(err); }
+});
+
+// Add new service
+app.post('/api/services', async (req, res) => {
+  try {
+    const newService = new Service(req.body);
+    await newService.save();
+    res.json({ success: true });
+  } catch (err) { res.status(400).json(err); }
+});
+
+// Delete service
+app.delete('/api/services/:id', async (req, res) => {
+  await Service.findByIdAndDelete(req.params.id);
+  res.json({ success: true });
+});
+
 // --- SABSE AAKHIR MEIN LISTEN KAREIN ---
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
