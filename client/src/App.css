@@ -101,3 +101,77 @@
 .modal-btns { display: flex; justify-content: flex-end; gap: 10px; }
 .btn-cancel { background: #e2e8f0; border:none; padding:10px; border-radius:6px; cursor:pointer; }
 .btn-save-main { background: #3182ce; color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; }
+
+/* --- Desktop vs Mobile Layout --- */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.mobile-header {
+  display: none; /* Desktop par chhupa rahega */
+}
+
+/* --- Responsive Table --- */
+.table-container {
+  width: 100%;
+  overflow-x: auto; /* Mobile par table slide ho sakegi */
+  -webkit-overflow-scrolling: touch;
+}
+
+.custom-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px; /* Isse kam hone par scroll bar aayega */
+}
+
+/* --- Media Query for Mobile (Screen size < 768px) --- */
+@media (max-width: 768px) {
+  .app-layout {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    position: fixed;
+    left: -250px; /* Bahar chhupa rahega */
+    top: 0;
+    height: 100%;
+    z-index: 1000;
+    transition: 0.3s;
+    width: 250px;
+    background: #2c3e50;
+  }
+
+  .sidebar.show {
+    left: 0; /* Click karne par andar aayega */
+  }
+
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    background: #34495e;
+    color: white;
+    justify-content: space-between;
+  }
+
+  .main-content {
+    padding: 10px;
+  }
+
+  /* Dashboard Cards Mobile par ek ke niche ek aayenge */
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Form rows mobile par single column ho jayenge */
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .modal-content {
+    width: 95%;
+    padding: 15px;
+  }
+}
