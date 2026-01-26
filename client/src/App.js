@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
 
+const API_URL = "https://vtech-app.onrender.com"; // Yahan apna Render wala link dalein
+
 function App() {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
