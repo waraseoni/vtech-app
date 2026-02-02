@@ -1,177 +1,115 @@
-/* Sidebar aur Dashboard Layout */
-.dashboard-container {
-  display: flex;
-  min-height: 100vh;
-  width: 100vw;
-  background: #f4f7fe;
-}
+/* Universal Settings */
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
 
+.app-layout { display: flex; min-height: 100vh; background: #f4f7fe; }
+
+/* --- SIDEBAR DESIGN --- */
 .sidebar {
-  width: 250px;
+  width: 260px;
   background: #1a202c;
   color: white;
   padding: 20px;
+  transition: 0.3s ease;
+  z-index: 1001;
 }
 
-.sidebar ul { list-style: none; padding: 0; margin-top: 50px; }
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.sidebar h2 { color: #63b3ed; letter-spacing: 1px; }
+
+.sidebar ul { list-style: none; }
+
 .sidebar li { 
-  padding: 15px; 
+  padding: 12px 15px; 
   cursor: pointer; 
   border-radius: 8px; 
-  margin-bottom: 5px;
-}
-.sidebar li.active { background: #3182ce; }
-.sidebar li:hover { background: #2d3748; }
-
-.main-content { flex: 1; padding: 30px; }
-
-.dash-header { 
-  display: flex; 
-  justify-content: space-between; 
-  margin-bottom: 30px; 
+  margin-bottom: 8px;
+  transition: 0.2s;
+  color: #a0aec0;
 }
 
-/* Landing Page Styles */
-.landing-page { width: 100vw; background: white; }
-.navbar { 
-  display: flex; 
-  justify-content: space-between; 
-  padding: 20px 10vw; 
-  align-items: center;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-.hero-section { 
-  text-align: center; 
-  padding: 100px 20px; 
-  background: linear-gradient(rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-}
-.hero-section h1 { font-size: 3rem; color: #2d3748; }
-.get-started-btn { 
-  background: #667eea; 
-  color: white; 
-  padding: 15px 40px; 
-  font-size: 1.2rem; 
-  border-radius: 50px;
-  margin-top: 30px;
-}
-.app-layout { display: flex; min-height: 100vh; background: #f8f9fa; }
-.sidebar { width: 240px; background: #2c3e50; color: white; padding: 20px; }
-.sidebar h3 { text-align: center; border-bottom: 1px solid #455a64; padding-bottom: 15px; }
-.sidebar ul { list-style: none; padding: 0; margin-top: 30px; }
-.sidebar li { padding: 12px; cursor: pointer; border-radius: 5px; margin-bottom: 10px; }
-.sidebar li.active { background: #3498db; }
+.sidebar li:hover { background: #2d3748; color: white; }
+.sidebar li.active { background: #3182ce; color: white; font-weight: bold; }
 
-.main-content { flex: 1; padding: 30px; }
-.header { margin-bottom: 30px; border-bottom: 2px solid #ddd; }
+.close-btn { display: none; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
 
-.repair-form { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-.repair-form textarea { grid-column: span 2; padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
-.repair-form input { padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+/* --- MAIN CONTENT & CARDS --- */
+.main-content { flex: 1; padding: 25px; overflow-x: hidden; }
 
-.btn-submit { background: #27ae60; color: white; margin-top: 15px; width: 100%; font-size: 16px; border: none; padding: 12px; border-radius: 5px; cursor: pointer; }
-
-.repair-table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-.repair-table th, .repair-table td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
-.repair-table th { background: #f1f1f1; }
-
-.status { padding: 5px 10px; border-radius: 15px; font-size: 12px; background: #ffeaa7; color: #d63031; }
-
-/* Login Screen Styles */
-.login-screen { display: flex; justify-content: center; align-items: center; height: 100vh; background: #3498db; }
-.login-card { background: white; padding: 40px; border-radius: 10px; text-align: center; width: 350px; }
-.login-card input { width: 100%; margin-bottom: 15px; padding: 12px; border: 1px solid #ddd; border-radius: 5px; }
-.btn-login { width: 100%; background: #2c3e50; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; }
-
-.content-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.btn-add { background: #3182ce; color: white; padding: 10px 20px; border-radius: 8px; font-weight: bold; border:none; cursor:pointer;}
-
-.custom-table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-.custom-table th { background: #f7fafc; padding: 15px; text-align: left; color: #4a5568; }
-.custom-table td { padding: 15px; border-bottom: 1px solid #edf2f7; }
-
-.btn-edit-sm { background: #ebf8ff; color: #3182ce; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px; }
-.btn-delete-sm { background: #fff5f5; color: #e53e3e; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
-
-/* Modal Styles */
-.modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:1000; }
-.modal-content { background:white; padding:30px; border-radius:12px; width:400px; box-shadow:0 20px 25px rgba(0,0,0,0.1); }
-.modal-content input, .modal-content textarea { width:100%; margin-bottom:15px; padding:10px; border:1px solid #ddd; border-radius:6px; }
-.form-row { display: flex; gap: 10px; }
-.modal-btns { display: flex; justify-content: flex-end; gap: 10px; }
-.btn-cancel { background: #e2e8f0; border:none; padding:10px; border-radius:6px; cursor:pointer; }
-.btn-save-main { background: #3182ce; color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; }
-
-/* --- Desktop vs Mobile Layout --- */
-.app-layout {
-  display: flex;
-  min-height: 100vh;
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
 }
 
-.mobile-header {
-  display: none; /* Desktop par chhupa rahega */
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  text-align: center;
 }
 
-/* --- Responsive Table --- */
-.table-container {
+.card h3 { font-size: 24px; color: #2d3748; }
+.card p { color: #718096; margin-top: 5px; }
+
+/* --- TABLE STYLES --- */
+.view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+
+.table-responsive {
   width: 100%;
-  overflow-x: auto; /* Mobile par table slide ho sakegi */
-  -webkit-overflow-scrolling: touch;
+  overflow-x: auto; /* Mobile scroll fix */
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
 
-.custom-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 600px; /* Isse kam hone par scroll bar aayega */
+.custom-table { width: 100%; border-collapse: collapse; min-width: 600px; }
+.custom-table th { background: #edf2f7; padding: 15px; text-align: left; color: #4a5568; }
+.custom-table td { padding: 15px; border-bottom: 1px solid #edf2f7; vertical-align: middle; }
+
+/* --- BUTTONS --- */
+.btn-primary { background: #3182ce; color: white; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; }
+.btn-edit { background: #ebf8ff; color: #3182ce; border: none; padding: 6px 12px; border-radius: 4px; margin-right: 5px; cursor: pointer; }
+.btn-del { background: #fff5f5; color: #e53e3e; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+
+/* --- MODAL DESIGN --- */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 2000;
+}
+.modal-content {
+  background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 450px;
+}
+.modal-content input, .modal-content select, .modal-content textarea {
+  width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px;
 }
 
-/* --- Media Query for Mobile (Screen size < 768px) --- */
+/* --- MOBILE SPECIFIC (Fixes) --- */
+.mobile-header { display: none; }
+.sidebar-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index: 1000; }
+
 @media (max-width: 768px) {
-  .app-layout {
-    flex-direction: column;
+  .mobile-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 15px 20px; background: #1a202c; color: white;
   }
+  .hamburger { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
 
   .sidebar {
-    position: fixed;
-    left: -250px; /* Bahar chhupa rahega */
-    top: 0;
-    height: 100%;
-    z-index: 1000;
-    transition: 0.3s;
-    width: 250px;
-    background: #2c3e50;
+    position: fixed; left: -260px; top: 0; height: 100%; width: 260px;
   }
+  .sidebar.open { left: 0; }
+  .close-btn { display: block; }
 
-  .sidebar.show {
-    left: 0; /* Click karne par andar aayega */
-  }
-
-  .mobile-header {
-    display: flex;
-    align-items: center;
-    padding: 15px;
-    background: #34495e;
-    color: white;
-    justify-content: space-between;
-  }
-
-  .main-content {
-    padding: 10px;
-  }
-
-  /* Dashboard Cards Mobile par ek ke niche ek aayenge */
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-
-  /* Form rows mobile par single column ho jayenge */
-  .form-row {
-    flex-direction: column;
-    gap: 0;
-  }
-
-  .modal-content {
-    width: 95%;
-    padding: 15px;
-  }
+  .main-content { padding: 15px; }
+  .view-header h2 { font-size: 18px; }
+  
+  .dashboard-grid { grid-template-columns: 1fr; }
 }
