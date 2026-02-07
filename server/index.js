@@ -6,8 +6,15 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 const app = express();
+
+// CORS Configuration
+app.use(cors({
+  origin: ["https://vtech-app.vercel.app", "http://localhost:3000"],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+}));
+
 app.use(express.json());
-app.use(cors());
 
 // JWT Secret Key
 const JWT_SECRET = process.env.JWT_SECRET || "VTECH_SUPER_SECRET_2026";
