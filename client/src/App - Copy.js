@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './App.css';
 
 const API_URL = "https://vtech-app.onrender.com";
+"http://localhost:5000";
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
