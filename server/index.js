@@ -461,10 +461,10 @@ app.get('/api/auth/users', authenticateToken, isAdmin, async (req, res) => {
 // --- 5. ERROR HANDLING ---
 
 // 404 Route
-app.use('*', (req, res) => {
+app.all('/*', (req, res) => {
   res.status(404).json({ 
     success: false, 
-    msg: "Route not found" 
+    msg: "Route Not Found" 
   });
 });
 

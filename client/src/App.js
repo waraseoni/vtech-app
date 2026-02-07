@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import './App.css';
 
-const API_URL = "http://localhost:5000";
+const API_URL = "https://vtech-app.onrender.com";
 
 // Login Component (Inline)
 const Login = ({ setToken, setUser }) => {
