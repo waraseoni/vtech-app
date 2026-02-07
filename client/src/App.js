@@ -400,7 +400,21 @@ function App() {
 
   return (
     <div className="app-layout">
-      {/* MOBILE HEADER */}
+      {/* NAYA: TOP NAVBAR (Desktop के लिए) */}
+      <header className="top-navbar">
+        <div className="brand-logo">V-TECH</div>
+        <div className="user-section">
+          <div className="user-info">
+            <span className="user-name">{user?.name}</span>
+            <span className="user-role">{user?.role}</span>
+          </div>
+          <button className="logout-icon-btn" onClick={handleLogout} title="Logout">
+            <i className="fa fa-sign-out"></i>
+          </button>
+        </div>
+      </header>
+
+      {/* MOBILE HEADER (Mobile के लिए) */}
       <header className="mobile-header">
         <button className="hamburger" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>☰</button>
         <div className="mobile-logo">V-TECH</div>
@@ -410,16 +424,11 @@ function App() {
         </div>
       </header>
 
-      {/* SIDEBAR */}
+      {/* SIDEBAR (User info और logout हटा दिए हैं) */}
       <nav className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="logo">
           <h2>V-TECH</h2>
           <button className="close-btn" onClick={() => setIsSidebarOpen(false)}>×</button>
-          <div className="user-info">
-            <p>Welcome, <strong>{user?.name}</strong></p>
-            <p className="user-role">{user?.role === 'admin' ? 'Administrator' : 'Staff'}</p>
-            <button className="logout-btn" onClick={handleLogout}>Logout</button>
-          </div>
         </div>
         <ul>
           <li className={activeTab === 'dashboard' ? 'active' : ''} onClick={() => handleTabChange('dashboard')}>
@@ -621,6 +630,30 @@ function App() {
           )}
         </div>
       </main>
+
+      {/* NAYA: Mobile Bottom Navigation */}
+      <div className="bottom-nav">
+        <div className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
+          <i className="fa fa-home"></i>
+          <span>Home</span>
+        </div>
+        <div className={`nav-item ${activeTab === 'clients' ? 'active' : ''}`} onClick={() => setActiveTab('clients')}>
+          <i className="fa fa-users"></i>
+          <span>Clients</span>
+        </div>
+        <div className={`nav-item ${activeTab === 'inventory' ? 'active' : ''}`} onClick={() => setActiveTab('inventory')}>
+          <i className="fa fa-box"></i>
+          <span>Stock</span>
+        </div>
+        <div className={`nav-item ${activeTab === 'jobsheets' ? 'active' : ''}`} onClick={() => setActiveTab('jobsheets')}>
+          <i className="fa fa-file-text"></i>
+          <span>Jobs</span>
+        </div>
+        <div className="nav-item" onClick={handleLogout}>
+          <i className="fa fa-sign-out" style={{color: '#fc8181'}}></i>
+          <span>Exit</span>
+        </div>
+      </div>
 
       {/* MODALS */}
       {showModal && (
