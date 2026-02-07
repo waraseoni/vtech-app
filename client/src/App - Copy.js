@@ -11,7 +11,6 @@ function App() {
   const [mechanics, setMechanics] = useState([]);
   const [services, setServices] = useState([]);
   const [products, setProducts] = useState([]);
-  const [jobs, setJobs] = useState([]);
   
   const [showModal, setShowModal] = useState(false);
   const [showStockModal, setShowStockModal] = useState(false);
@@ -24,14 +23,9 @@ function App() {
   const [productForm, setProductForm] = useState({ name: '', description: '', purchase_price: '', sell_price: '' });
   const [stockUpdate, setStockUpdate] = useState({ productId: '', quantity: '', type: 'IN', remarks: '' });
   
-  // Job Form - Corrected field names to match backend
-  const [jobForm, setJobForm] = useState({ 
-    client: '', 
-    mechanic: '', 
-    service: '', 
-    product: '', 
-    total_amount: '' 
-  });
+  // Inhe baaki states ke niche paste karein
+const [jobs, setJobs] = useState([]);
+const [jobForm, setJobForm] = useState({ client_id: '', device: '', problem: '', status: 'Pending', cost: '' });
 
   useEffect(() => {
     fetchAllData();
@@ -42,8 +36,7 @@ function App() {
     fetch(`${API_URL}/api/mechanics`).then(res => res.json()).then(setMechanics).catch(err => console.log(err));
     fetch(`${API_URL}/api/services`).then(res => res.json()).then(setServices).catch(err => console.log(err));
     fetch(`${API_URL}/api/products`).then(res => res.json()).then(setProducts).catch(err => console.log(err));
-    // Corrected API endpoint
-    fetch(`${API_URL}/api/jobsheets`).then(res => res.json()).then(setJobs).catch(err => console.log(err));
+	fetch(`${API_URL}/api/jobs`).then(res => res.json()).then(setJobs).catch(err => console.log(err));
   };
 
   const handleTabChange = (tab) => {
@@ -55,7 +48,6 @@ function App() {
     e.preventDefault();
     let url = "";
     let body = {};
-    let method = editingId ? 'PUT' : 'POST';
 
     if (activeTab === 'clients') {
       url = editingId ? `${API_URL}/api/clients/${editingId}` : `${API_URL}/api/clients`;
@@ -69,89 +61,21 @@ function App() {
     } else if (activeTab === 'inventory') {
       url = `${API_URL}/api/products`;
       body = productForm;
-      method = 'POST'; // Inventory only has POST for new products
     } else if (activeTab === 'jobsheets') {
-      // Corrected job sheet handling
-      if (editingId) {
-        // For editing, send the jobForm as is
-        url = `${API_URL}/api/jobsheets/${editingId}`;
-        body = jobForm;
-        method = 'PUT';
-      } else {
-        // For creating new job sheet, backend expects clientId, mechanicId, etc.
-        url = `${API_URL}/api/jobsheets`;
-        body = {
-          clientId: jobForm.client,
-          mechanicId: jobForm.mechanic,
-          serviceId: jobForm.service,
-          productId: jobForm.product,
-          total_amount: jobForm.total_amount
-        };
-        method = 'POST';
-      }
-    }
+		url = editingId ? `${API_URL}/api/jobs/${editingId}` : `${API_URL}/api/jobs`;
+		body = jobForm;
+}
+	
 
-    try {
-      const response = await fetch(url, {
-        method: method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
+    await fetch(url, {
+      method: editingId ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
 
-      if (!response.ok) {
-        throw new Error('Save failed');
-      }
-
-      closeModal();
-      fetchAllData();
-    } catch (error) {
-      console.error('Save error:', error);
-      alert('Save failed. Please check console for details.');
-    }
+    closeModal();
+    fetchAllData();
   };
-  
-	const handlePrint = (job) => {
-  const printWindow = window.open('', '_blank');
-  printWindow.document.write(`
-    <html>
-      <head>
-        <title>Invoice - ${job.jobId}</title>
-        <style>
-          body { font-family: sans-serif; padding: 20px; }
-          .invoice-box { border: 1px solid #eee; padding: 30px; max-width: 800px; margin: auto; }
-          .header { display: flex; justify-content: space-between; border-bottom: 2px solid #333; padding-bottom: 10px; }
-          .details { margin: 20px 0; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-          .total { text-align: right; font-size: 20px; margin-top: 20px; font-weight: bold; }
-        </style>
-      </head>
-      <body>
-        <div class="invoice-box">
-          <div class="header">
-            <div><h1>V-TECH</h1><p>Repair Specialists</p></div>
-            <div><p>ID: ${job.jobId}</p><p>Date: ${new Date(job.date).toLocaleDateString()}</p></div>
-          </div>
-          <div class="details">
-            <strong>Customer:</strong> ${job.client?.firstname} ${job.client?.lastname}<br>
-            <strong>Contact:</strong> ${job.client?.contact}
-          </div>
-          <table>
-            <thead><tr><th>Description</th><th>Amount</th></tr></thead>
-            <tbody>
-              <tr><td>Service: ${job.service?.service}</td><td>₹${job.service?.cost}</td></tr>
-              ${job.product ? `<tr><td>Product: ${job.product.name}</td><td>Included</td></tr>` : ''}
-            </tbody>
-          </table>
-          <div class="total">Grand Total: ₹${job.total_amount}</div>
-          <p style="margin-top: 50px; text-align: center;">Thank you for choosing V-TECH!</p>
-        </div>
-      </body>
-    </html>
-  `);
-  printWindow.document.close();
-  printWindow.print();
-};
 
   const handleUpdateStock = async (e) => {
     e.preventDefault();
@@ -167,14 +91,7 @@ function App() {
 
   const deleteItem = async (type, id) => {
     if (window.confirm(`Kya aap ise delete karna chahte hain?`)) {
-      let path = '';
-      if (type === 'inventory') {
-        path = 'products';
-      } else if (type === 'job') {
-        path = 'jobsheets';
-      } else {
-        path = `${type}s`;
-      }
+      const path = type === 'inventory' ? 'products' : `${type}s`;
       await fetch(`${API_URL}/api/${path}/${id}`, { method: 'DELETE' });
       fetchAllData();
     }
@@ -187,7 +104,6 @@ function App() {
     setMechForm({ name: '', contact: '', email: '', status: 1 });
     setServiceForm({ service: '', description: '', cost: '', status: 1 });
     setProductForm({ name: '', description: '', purchase_price: '', sell_price: '' });
-    setJobForm({ client: '', mechanic: '', service: '', product: '', total_amount: '' });
   };
 
   return (
@@ -210,7 +126,7 @@ function App() {
           <li className={activeTab === 'mechanics' ? 'active' : ''} onClick={() => handleTabChange('mechanics')}>Mechanics</li>
           <li className={activeTab === 'services' ? 'active' : ''} onClick={() => handleTabChange('services')}>Services</li>
           <li className={activeTab === 'inventory' ? 'active' : ''} onClick={() => handleTabChange('inventory')}>Inventory</li>
-          <li className={activeTab === 'jobsheets' ? 'active' : ''} onClick={() => handleTabChange('jobsheets')}>Job Sheets</li>
+          <li onClick={() => handleTabChange('jobsheets')}>Job Sheets</li>
         </ul>
       </nav>
 
@@ -224,7 +140,6 @@ function App() {
             <div className="card"><h3>{clients.length}</h3><p>Total Clients</p></div>
             <div className="card"><h3>{products.length}</h3><p>Products</p></div>
             <div className="card"><h3>{mechanics.filter(m => m.status === 1).length}</h3><p>Active Staff</p></div>
-            <div className="card"><h3>{jobs.length}</h3><p>Total Jobs</p></div>
           </div>
         )}
 
@@ -276,8 +191,7 @@ function App() {
                     <tr key={s._id}><td>{s.service}</td><td>₹{s.cost}</td>
                     <td className="action-btns">
                         <button className="btn-edit" onClick={() => {setEditingId(s._id); setServiceForm(s); setShowModal(true);}}>Edit</button>
-                        <button className="btn-print" onClick={() => handlePrint(s._id)}>Print</button>
-						<button className="btn-del" onClick={() => deleteItem('service', s._id)}>Del</button>
+                        <button className="btn-del" onClick={() => deleteItem('service', s._id)}>Del</button>
                     </td></tr>
                     ))}
                 </tbody>
@@ -311,20 +225,16 @@ function App() {
   <div className="tab-view">
     <div className="view-header"><h2>Repair Jobs</h2><button className="btn-primary" onClick={() => setShowModal(true)}>+ New Job</button></div>
     <table className="custom-table">
-      <thead><tr><th>Job ID</th><th>Client</th><th>Mechanic</th><th>Service</th><th>Product</th><th>Total Amount</th><th>Status</th><th>Actions</th></tr></thead>
+      <thead><tr><th>Client</th><th>Device</th><th>Problem</th><th>Status</th><th>Actions</th></tr></thead>
       <tbody>
         {jobs.map(j => (
           <tr key={j._id}>
-            <td>{j.jobId}</td>
-            <td>{j.client?.firstname} {j.client?.lastname}</td>
-            <td>{j.mechanic?.name}</td>
-            <td>{j.service?.service}</td>
-            <td>{j.product?.name}</td>
-            <td>₹{j.total_amount}</td>
-            <td><span className={`status-${j.status?.toLowerCase()}`}>{j.status}</span></td>
+            <td>{j.client_id?.firstname}</td> {/* Client ka naam dikhane ke liye */}
+            <td>{j.device}</td>
+            <td>{j.problem}</td>
+            <td><span className={`status-${j.status.toLowerCase()}`}>{j.status}</span></td>
             <td className="action-btns">
               <button className="btn-edit" onClick={() => {setEditingId(j._id); setJobForm(j); setShowModal(true);}}>Edit</button>
-              <button className="btn-del" onClick={() => deleteItem('job', j._id)}>Del</button>
             </td>
           </tr>
         ))}
@@ -374,23 +284,18 @@ function App() {
               )}
 			  {activeTab === 'jobsheets' && (
   <div className="form-group">
-    <select value={jobForm.client} onChange={e => setJobForm({...jobForm, client: e.target.value})} required>
+    <select value={jobForm.client_id} onChange={e => setJobForm({...jobForm, client_id: e.target.value})} required>
       <option value="">Select Client</option>
       {clients.map(c => <option key={c._id} value={c._id}>{c.firstname} {c.lastname}</option>)}
     </select>
-    <select value={jobForm.mechanic} onChange={e => setJobForm({...jobForm, mechanic: e.target.value})} required>
-      <option value="">Select Mechanic</option>
-      {mechanics.map(m => <option key={m._id} value={m._id}>{m.name}</option>)}
+    <input placeholder="Device Model" value={jobForm.device} onChange={e => setJobForm({...jobForm, device: e.target.value})} required />
+    <textarea placeholder="Problem Description" value={jobForm.problem} onChange={e => setJobForm({...jobForm, problem: e.target.value})} />
+    <select value={jobForm.status} onChange={e => setJobForm({...jobForm, status: e.target.value})}>
+      <option value="Pending">Pending</option>
+      <option value="Repairing">Repairing</option>
+      <option value="Completed">Completed</option>
     </select>
-    <select value={jobForm.service} onChange={e => setJobForm({...jobForm, service: e.target.value})} required>
-      <option value="">Select Service</option>
-      {services.map(s => <option key={s._id} value={s._id}>{s.service}</option>)}
-    </select>
-    <select value={jobForm.product} onChange={e => setJobForm({...jobForm, product: e.target.value})}>
-      <option value="">Select Product (Optional)</option>
-      {products.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
-    </select>
-    <input placeholder="Total Amount" type="number" value={jobForm.total_amount} onChange={e => setJobForm({...jobForm, total_amount: e.target.value})} required />
+    <input placeholder="Estimated Cost" type="number" value={jobForm.cost} onChange={e => setJobForm({...jobForm, cost: e.target.value})} />
   </div>
 )}
               <div className="modal-btns">
