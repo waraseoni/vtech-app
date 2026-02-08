@@ -21,12 +21,11 @@ const JWT_SECRET = process.env.JWT_SECRET || "VTECH_SUPER_SECRET_2026";
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/vtech')
-  .then(() => console.log("V-Tech DB Connected with Auth"))
-  .catch(err => console.error("Connection Error:", err));
+  .then(() => console.log("✅ V-Tech DB Connected Successfully"))
+  .catch(err => console.error("❌ Connection Error:", err));
 
-// --- 1. SCHEMAS (Sare Ek Saath) ---
+// --- SCHEMAS ---
 
-// नया: User Model (Login/Register के लिए)
 const User = mongoose.model('User', new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
@@ -47,7 +46,7 @@ const Mechanic = mongoose.model('Mechanic', new mongoose.Schema({
   name: { type: String, required: true },
   contact: String,
   email: String,
-  status: { type: Number, default: 1 }, // 1: Active, 0: Inactive
+  status: { type: Number, default: 1 },
   date_created: { type: Date, default: Date.now }
 }));
 
@@ -76,155 +75,75 @@ const StockLog = mongoose.model('StockLog', new mongoose.Schema({
   date: { type: Date, default: Date.now }
 }));
 
-const JobSheet = mongoose.model('JobSheet', new mongoose.Schema({
-  jobId: String,
-  client: { type: mongoose.Schema.Types.ObjectId, ref: 'Client' },
-  mechanic: { type: mongoose.Schema.Types.ObjectId, ref: 'Mechanic' },
-  item_model: String,     // Naya
-  fault: String,          // Naya
-  status: {               // Naya
-    type: String, 
-    enum: ['Pending', 'Processing', 'Ready', 'Delivered'], 
-    default: 'Pending' 
-  },
-  remarks: String,        // Naya
-  total_amount: Number,
+// --- UPDATED JOBSHEET SCHEMA ---
+const jobSheetSchema = new mongoose.Schema({
+  jobId: { type: String, unique: true },
+  client: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', required: true },
+  mechanic: { type: mongoose.Schema.Types.ObjectId, ref: 'Mechanic', required: true },
+  
+  // Naye Fields
+  item_model: { type: String, required: true }, 
+  fault: { type: String, required: true },
+  
+  // Link to Service and Product (Optional)
+  service: { type: mongoose.Schema.Types.ObjectId, ref: 'Service' },
+  product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+  
+  status: { type: String, enum: ['Pending', 'Processing', 'Ready', 'Delivered'], default: 'Pending' },
+  remarks: String,
+  total_amount: { type: Number, default: 0 },
   date: { type: Date, default: Date.now }
-}));
+});
 
-// --- 2. MIDDLEWARE ---
+const JobSheet = mongoose.model('JobSheet', jobSheetSchema);
 
-// Middleware to verify Token
+// --- MIDDLEWARE ---
+
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // "Bearer TOKEN" से token निकालना
-
-  if (!token) {
-    return res.status(401).json({ 
-      success: false, 
-      msg: "Access Denied: No Token Provided" 
-    });
-  }
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) return res.status(401).json({ success: false, msg: "No Token Provided" });
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ 
-        success: false, 
-        msg: "Invalid Token" 
-      });
-    }
+    if (err) return res.status(403).json({ success: false, msg: "Invalid Token" });
     req.user = user;
     next();
   });
 };
 
-// Middleware to check admin role (optional)
 const isAdmin = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
-    next();
-  } else {
-    return res.status(403).json({ 
-      success: false, 
-      msg: "Access Denied: Admin privileges required" 
-    });
-  }
+  if (req.user && req.user.role === 'admin') next();
+  else return res.status(403).json({ success: false, msg: "Admin Access Required" });
 };
 
-// --- 3. AUTH ROUTES (नया Section) ---
+// --- AUTH ROUTES ---
 
-// Register Route (पहला user बनाने के लिए)
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
-    
-    // Check if user already exists
     let user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ 
-        success: false, 
-        msg: "Email already exists" 
-      });
-    }
+    if (user) return res.status(400).json({ success: false, msg: "Email exists" });
 
-    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Create new user
-    user = new User({ 
-      name, 
-      email, 
-      password: hashedPassword, 
-      role: role || 'staff' 
-    });
-    
+    user = new User({ name, email, password: hashedPassword, role: role || 'staff' });
     await user.save();
-    
-    res.json({ 
-      success: true, 
-      msg: "User registered successfully" 
-    });
-  } catch (err) {
-    console.error("Register error:", err);
-    res.status(500).json({ 
-      success: false, 
-      msg: "Server Error" 
-    });
-  }
+    res.json({ success: true, msg: "User registered" });
+  } catch (err) { res.status(500).json({ msg: "Server Error" }); }
 });
 
-// Login Route
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    
-    // Check if user exists
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ 
-        success: false, 
-        msg: "Invalid Email" 
-      });
-    }
+    if (!user) return res.status(400).json({ success: false, msg: "Invalid Email" });
 
-    // Check password
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ 
-        success: false, 
-        msg: "Invalid Password" 
-      });
-    }
+    if (!isMatch) return res.status(400).json({ success: false, msg: "Wrong Password" });
 
-    // Create JWT token
-    const token = jwt.sign(
-      { 
-        id: user._id, 
-        name: user.name,
-        email: user.email,
-        role: user.role 
-      }, 
-      JWT_SECRET, 
-      { expiresIn: '1d' }
-    );
-    
-    res.json({ 
-      success: true,
-      token, 
-      user: { 
-        id: user._id, 
-        name: user.name, 
-        email: user.email,
-        role: user.role 
-      } 
-    });
-  } catch (err) {
-    console.error("Login error:", err);
-    res.status(500).json({ 
-      success: false, 
-      msg: "Server Error" 
-    });
-  }
+    const token = jwt.sign({ id: user._id, role: user.role, name: user.name }, JWT_SECRET, { expiresIn: '1d' });
+    res.json({ success: true, token, user: { id: user._id, name: user.name, role: user.role } });
+  } catch (err) { res.status(500).json({ msg: "Server Error" }); }
 });
 
 // Check Token Validity
@@ -233,164 +152,6 @@ app.get('/api/auth/verify', authenticateToken, (req, res) => {
     success: true, 
     user: req.user,
     msg: "Token is valid" 
-  });
-});
-
-// --- 4. DATA ROUTES (Protected with Token) ---
-
-// Clients (Protected)
-app.get('/api/clients', authenticateToken, async (req, res) => {
-  res.json(await Client.find().sort({ firstname: 1 }));
-});
-
-app.post('/api/clients', authenticateToken, async (req, res) => {
-  try { 
-    const n = new Client(req.body); 
-    await n.save(); 
-    res.json({ success: true }); 
-  }
-  catch (e) { 
-    res.status(400).json({ message: "Contact already exists" }); 
-  }
-});
-
-app.delete('/api/clients/:id', authenticateToken, async (req, res) => { 
-  await Client.findByIdAndDelete(req.params.id); 
-  res.json({ success: true }); 
-});
-
-app.put('/api/clients/:id', authenticateToken, async (req, res) => { 
-  await Client.findByIdAndUpdate(req.params.id, req.body); 
-  res.json({ success: true }); 
-});
-
-// Mechanics (Protected)
-app.get('/api/mechanics', authenticateToken, async (req, res) => {
-  res.json(await Mechanic.find().sort({ name: 1 }));
-});
-
-app.post('/api/mechanics', authenticateToken, async (req, res) => { 
-  const m = new Mechanic(req.body); 
-  await m.save(); 
-  res.json({ success: true }); 
-});
-
-app.delete('/api/mechanics/:id', authenticateToken, async (req, res) => { 
-  await Mechanic.findByIdAndDelete(req.params.id); 
-  res.json({ success: true }); 
-});
-
-// Services (Protected)
-app.get('/api/services', authenticateToken, async (req, res) => {
-  res.json(await Service.find().sort({ service: 1 }));
-});
-
-app.post('/api/services', authenticateToken, async (req, res) => { 
-  const s = new Service(req.body); 
-  await s.save(); 
-  res.json({ success: true }); 
-});
-
-app.delete('/api/services/:id', authenticateToken, async (req, res) => { 
-  await Service.findByIdAndDelete(req.params.id); 
-  res.json({ success: true }); 
-});
-
-// Inventory & Stock (Protected)
-app.get('/api/products', authenticateToken, async (req, res) => {
-  res.json(await Product.find().sort({ name: 1 }));
-});
-
-app.post('/api/products', authenticateToken, async (req, res) => {
-  try { 
-    const p = new Product(req.body); 
-    await p.save(); 
-    res.json({ success: true }); 
-  }
-  catch (e) { 
-    res.status(400).json({ message: "Product already exists" }); 
-  }
-});
-
-app.post('/api/inventory/update-stock', authenticateToken, async (req, res) => {
-  const { productId, quantity, type, remarks } = req.body;
-  const log = new StockLog({ productId, quantity, type, remarks });
-  await log.save();
-  const product = await Product.findById(productId);
-  if (type === 'IN') product.current_stock += parseInt(quantity);
-  else product.current_stock -= parseInt(quantity);
-  await product.save();
-  res.json({ success: true, current_stock: product.current_stock });
-});
-
-// Job Sheets (Protected)
-app.post('/api/jobsheets', authenticateToken, async (req, res) => {
-  try {
-    const { clientId, mechanicId, serviceId, productId, total_amount } = req.body;
-    
-    console.log("Received job data:", req.body);
-    
-    const job = new JobSheet({
-      jobId: "JOB-" + Date.now(),
-      client: clientId || null,
-      mechanic: mechanicId || null,
-      service: serviceId || null,
-      product: productId || null,
-      total_amount: total_amount || 0,
-      status: 'Pending'
-    });
-
-    console.log("Saving job:", job);
-    await job.save();
-    
-    // Inventory update logic
-    if (productId) {
-      const p = await Product.findById(productId);
-      if (p) {
-        p.current_stock -= 1;
-        await p.save();
-        await new StockLog({ 
-          productId, 
-          quantity: 1, 
-          type: 'OUT', 
-          remarks: `Used in ${job.jobId}` 
-        }).save();
-      }
-    }
-    
-    res.json({ success: true, jobId: job.jobId });
-  } catch (error) {
-    console.error("Job save error:", error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
-  }
-});
-
-app.get('/api/jobsheets', authenticateToken, async (req, res) => {
-  const jobs = await JobSheet.find().populate('client mechanic service product').sort({ date: -1 });
-  res.json(jobs);
-});
-
-app.put('/api/jobsheets/:id', authenticateToken, async (req, res) => {
-  await JobSheet.findByIdAndUpdate(req.params.id, req.body);
-  res.json({ success: true });
-});
-
-app.delete('/api/jobsheets/:id', authenticateToken, async (req, res) => {
-  await JobSheet.findByIdAndDelete(req.params.id);
-  res.json({ success: true });
-});
-
-// Test Route (Public - for checking server status)
-app.get('/api/test', (req, res) => {
-  res.json({ 
-    success: true, 
-    message: 'V-Tech API is running!',
-    version: '1.0.0',
-    features: ['Auth System', 'Clients', 'Mechanics', 'Services', 'Inventory', 'Job Sheets'],
-    note: 'All data routes require authentication token'
   });
 });
 
@@ -456,6 +217,182 @@ app.get('/api/auth/users', authenticateToken, isAdmin, async (req, res) => {
       msg: "Server Error" 
     });
   }
+});
+
+// --- DATA ROUTES ---
+
+// Clients (Protected)
+app.get('/api/clients', authenticateToken, async (req, res) => {
+  res.json(await Client.find().sort({ firstname: 1 }));
+});
+
+app.post('/api/clients', authenticateToken, async (req, res) => {
+  try { 
+    const n = new Client(req.body); 
+    await n.save(); 
+    res.json({ success: true }); 
+  }
+  catch (e) { 
+    res.status(400).json({ message: "Contact already exists" }); 
+  }
+});
+
+app.delete('/api/clients/:id', authenticateToken, async (req, res) => { 
+  await Client.findByIdAndDelete(req.params.id); 
+  res.json({ success: true }); 
+});
+
+app.put('/api/clients/:id', authenticateToken, async (req, res) => { 
+  await Client.findByIdAndUpdate(req.params.id, req.body); 
+  res.json({ success: true }); 
+});
+
+// Mechanics (Protected)
+app.get('/api/mechanics', authenticateToken, async (req, res) => {
+  res.json(await Mechanic.find().sort({ name: 1 }));
+});
+
+app.post('/api/mechanics', authenticateToken, async (req, res) => { 
+  const m = new Mechanic(req.body); 
+  await m.save(); 
+  res.json({ success: true }); 
+});
+
+app.delete('/api/mechanics/:id', authenticateToken, async (req, res) => { 
+  await Mechanic.findByIdAndDelete(req.params.id); 
+  res.json({ success: true }); 
+});
+
+app.put('/api/mechanics/:id', authenticateToken, async (req, res) => { 
+  await Mechanic.findByIdAndUpdate(req.params.id, req.body); 
+  res.json({ success: true }); 
+});
+
+// Services (Protected)
+app.get('/api/services', authenticateToken, async (req, res) => {
+  res.json(await Service.find().sort({ service: 1 }));
+});
+
+app.post('/api/services', authenticateToken, async (req, res) => { 
+  const s = new Service(req.body); 
+  await s.save(); 
+  res.json({ success: true }); 
+});
+
+app.delete('/api/services/:id', authenticateToken, async (req, res) => { 
+  await Service.findByIdAndDelete(req.params.id); 
+  res.json({ success: true }); 
+});
+
+app.put('/api/services/:id', authenticateToken, async (req, res) => { 
+  await Service.findByIdAndUpdate(req.params.id, req.body); 
+  res.json({ success: true }); 
+});
+
+// Inventory & Stock (Protected)
+app.get('/api/products', authenticateToken, async (req, res) => {
+  res.json(await Product.find().sort({ name: 1 }));
+});
+
+app.post('/api/products', authenticateToken, async (req, res) => {
+  try { 
+    const p = new Product(req.body); 
+    await p.save(); 
+    res.json({ success: true }); 
+  }
+  catch (e) { 
+    res.status(400).json({ message: "Product already exists" }); 
+  }
+});
+
+app.delete('/api/products/:id', authenticateToken, async (req, res) => { 
+  await Product.findByIdAndDelete(req.params.id); 
+  res.json({ success: true }); 
+});
+
+app.post('/api/inventory/update-stock', authenticateToken, async (req, res) => {
+  const { productId, quantity, type, remarks } = req.body;
+  const product = await Product.findById(productId);
+  if (type === 'IN') product.current_stock += parseInt(quantity);
+  else product.current_stock -= parseInt(quantity);
+  await product.save();
+  await new StockLog({ productId, quantity, type, remarks }).save();
+  res.json({ success: true });
+});
+
+// --- JOB SHEETS ROUTES (Fixed) ---
+
+app.get('/api/jobsheets', authenticateToken, async (req, res) => {
+  try {
+    const jobs = await JobSheet.find()
+      .populate('client')
+      .populate('mechanic')
+      .populate('service')
+      .populate('product')
+      .sort({ date: -1 });
+    res.json(jobs);
+  } catch (err) { res.status(500).json({ msg: "Error fetching jobs" }); }
+});
+
+app.post('/api/jobsheets', authenticateToken, async (req, res) => {
+  try {
+    // Frontend se naya data structure receive karein
+    const { client, mechanic, item_model, fault, service, product, status, remarks, total_amount } = req.body;
+
+    if (!client || !mechanic || !item_model || !fault) {
+      return res.status(400).json({ success: false, msg: "Please fill all required fields (Client, Mechanic, Model, Fault)" });
+    }
+
+    const jobId = 'JOB-' + Math.floor(10000 + Math.random() * 90000); // 5 digit random ID
+
+    const newJob = new JobSheet({
+      jobId,
+      client,
+      mechanic,
+      item_model,
+      fault,
+      service: service || null, // Agar select nahi kiya to null
+      product: product || null, // Agar select nahi kiya to null
+      status: status || 'Pending',
+      remarks,
+      total_amount
+    });
+
+    await newJob.save();
+
+    // Response bhejne se pehle populate karein taaki frontend par turant naam dikh jaye
+    const populatedJob = await JobSheet.findById(newJob._id)
+      .populate('client').populate('mechanic').populate('service').populate('product');
+
+    res.status(201).json({ success: true, msg: "Job Created Successfully", job: populatedJob });
+  } catch (err) {
+    console.error("Job Save Error:", err);
+    res.status(400).json({ success: false, msg: "Save Failed", error: err.message });
+  }
+});
+
+app.put('/api/jobsheets/:id', authenticateToken, async (req, res) => {
+  try {
+    const updatedJob = await JobSheet.findByIdAndUpdate(req.params.id, req.body, { new: true })
+      .populate('client').populate('mechanic').populate('service').populate('product');
+    res.json({ success: true, msg: "Job Updated", job: updatedJob });
+  } catch (err) { res.status(400).json({ success: false, msg: "Update Failed" }); }
+});
+
+app.delete('/api/jobsheets/:id', authenticateToken, async (req, res) => {
+  await JobSheet.findByIdAndDelete(req.params.id);
+  res.json({ success: true, msg: "Job Deleted" });
+});
+
+// Test Route (Public - for checking server status)
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    success: true, 
+    message: 'V-Tech API is running!',
+    version: '1.0.0',
+    features: ['Auth System', 'Clients', 'Mechanics', 'Services', 'Inventory', 'Job Sheets'],
+    note: 'All data routes require authentication token'
+  });
 });
 
 // --- 5. ERROR HANDLING ---

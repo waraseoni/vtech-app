@@ -1,18 +1,16 @@
 import React, { useEffect, useState } from 'react';
+import { login, getClients, createClient } from './services/api';
 import axios from 'axios';
 import './App.css';
 
-const API_URL = "https://vtech-app.onrender.com";
+// URL set karein
+const API_URL = "https://vtech-app.onrender.com"; // Jab deploy karein tab ye use karein
+// const API_URL = "http://localhost:5000"; // Local testing ke liye
 
-// Login Component (Inline)
+// --- LOGIN COMPONENT ---
 const Login = ({ setToken, setUser }) => {
   const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    role: 'staff'
-  });
+  const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'staff' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -128,7 +126,7 @@ const Login = ({ setToken, setUser }) => {
   );
 };
 
-// Main App Component
+// --- MAIN APP COMPONENT ---
 function App() {
   // Auth States
   const [token, setToken] = useState(localStorage.getItem('vtech_token'));
@@ -160,12 +158,14 @@ function App() {
   const [productForm, setProductForm] = useState({ name: '', description: '', purchase_price: '', sell_price: '' });
   const [stockUpdate, setStockUpdate] = useState({ productId: '', quantity: '', type: 'IN', remarks: '' });
   
-  // Updated Job Form with new fields
+  // UPDATED JOB FORM WITH NEW FIELDS
   const [jobForm, setJobForm] = useState({ 
     client: '', 
     mechanic: '', 
     item_model: '', 
     fault: '', 
+    service: '',   // Selected Service ID
+    product: '',   // Selected Product ID
     status: 'Pending', 
     remarks: '', 
     total_amount: 0 
@@ -185,6 +185,27 @@ function App() {
     }
   }, [token]);
 
+  // --- AUTOMATIC CALCULATION LOGIC ---
+  useEffect(() => {
+    if (showModal && activeTab === 'jobsheets') {
+      let total = 0;
+      
+      // Service Cost add karein
+      if (jobForm.service) {
+        const selectedService = services.find(s => s._id === jobForm.service);
+        if (selectedService) total += selectedService.cost;
+      }
+
+      // Product Price add karein
+      if (jobForm.product) {
+        const selectedProduct = products.find(p => p._id === jobForm.product);
+        if (selectedProduct) total += selectedProduct.sell_price;
+      }
+
+      setJobForm(prev => ({ ...prev, total_amount: total }));
+    }
+  }, [jobForm.service, jobForm.product, services, products, showModal, activeTab]);
+
   const fetchAllData = () => {
     axiosInstance.get('/api/clients')
       .then(res => setClients(res.data))
@@ -203,7 +224,11 @@ function App() {
       .catch(err => console.log(err));
 
     axiosInstance.get('/api/jobsheets')
-      .then(res => setJobs(res.data))
+      .then(res => {
+        // Filter out any null/undefined jobs
+        const validJobs = res.data.filter(job => job && job.jobId);
+        setJobs(validJobs);
+      })
       .catch(err => console.log(err));
   };
 
@@ -245,38 +270,81 @@ function App() {
           url = `/api/jobsheets/${editingId}`;
           body = jobForm;
           method = 'put';
+          
+          const response = await axiosInstance.put(url, body);
+          if (response.data.success) {
+            alert(response.data.msg || "Job updated successfully!");
+            closeModal();
+            fetchAllData();
+          }
+          return;
         } else {
           // Create new job
           url = `/api/jobsheets`;
-          // Backend को ये नए fields भेज रहे हैं
           body = {
-            clientId: jobForm.client,
-            mechanicId: jobForm.mechanic,
+            client: jobForm.client,
+            mechanic: jobForm.mechanic,
             item_model: jobForm.item_model,
             fault: jobForm.fault,
+            service: jobForm.service,
+            product: jobForm.product,
             status: jobForm.status,
             remarks: jobForm.remarks,
             total_amount: jobForm.total_amount
           };
           method = 'post';
+          
+          const response = await axiosInstance.post(url, body);
+          
+          if (response.data.success) {
+            alert(response.data.msg || "Job Sheet Saved Successfully!");
+            
+            if (response.data.job) {
+              // नया job list में add करें
+              setJobs(prevJobs => [response.data.job, ...prevJobs]); 
+            } else {
+              // If job data not in response, refresh the list
+              fetchAllData();
+            }
+            
+            closeModal();
+            // Form reset
+            setJobForm({ 
+              client: '', 
+              mechanic: '', 
+              item_model: '', 
+              fault: '', 
+              service: '',
+              product: '',
+              status: 'Pending', 
+              remarks: '', 
+              total_amount: 0 
+            });
+          }
+          return;
         }
       }
 
-      await axiosInstance[method](url, body);
-      closeModal();
-      fetchAllData();
+      // For other tabs (clients, mechanics, services, inventory)
+      const response = await axiosInstance[method](url, body);
+      if (response.data.success) {
+        closeModal();
+        fetchAllData();
+      }
     } catch (error) {
       console.error('Save error:', error);
-      alert(error.response?.data?.message || 'Save failed!');
+      alert(error.response?.data?.msg || error.response?.data?.message || 'Save failed!');
     }
   };
 
   const handlePrint = (job) => {
+    if (!job) return;
+    
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <html>
         <head>
-          <title>Job Sheet - ${job.jobId}</title>
+          <title>Job Sheet - ${job.jobId || 'N/A'}</title>
           <style>
             body { font-family: sans-serif; padding: 20px; }
             .invoice-box { border: 1px solid #eee; padding: 30px; max-width: 800px; margin: auto; }
@@ -292,14 +360,14 @@ function App() {
           <div class="invoice-box">
             <div class="header">
               <div><h1>V-TECH WORKSHOP</h1><p>Device Repair Specialists</p></div>
-              <div><p><strong>Job ID:</strong> ${job.jobId}</p><p><strong>Date:</strong> ${new Date(job.date).toLocaleDateString()}</p></div>
+              <div><p><strong>Job ID:</strong> ${job.jobId || 'N/A'}</p><p><strong>Date:</strong> ${job.date ? new Date(job.date).toLocaleDateString() : new Date().toLocaleDateString()}</p></div>
             </div>
             
             <div class="section">
               <h3>Customer Details</h3>
-              <p><strong>Name:</strong> ${job.client?.firstname} ${job.client?.lastname}</p>
-              <p><strong>Contact:</strong> ${job.client?.contact}</p>
-              <p><strong>Address:</strong> ${job.client?.address}</p>
+              <p><strong>Name:</strong> ${job.client?.firstname || ''} ${job.client?.lastname || ''}</p>
+              <p><strong>Contact:</strong> ${job.client?.contact || 'N/A'}</p>
+              <p><strong>Address:</strong> ${job.client?.address || 'N/A'}</p>
             </div>
 
             <div class="section">
@@ -315,7 +383,7 @@ function App() {
                 <thead><tr><th>Description</th><th>Amount</th></tr></thead>
                 <tbody>
                   ${job.service ? `<tr><td>Service: ${job.service.service}</td><td>₹${job.service.cost}</td></tr>` : ''}
-                  ${job.product ? `<tr><td>Product: ${job.product.name}</td><td>Included</td></tr>` : ''}
+                  ${job.product ? `<tr><td>Product: ${job.product.name}</td><td>₹${job.product.sell_price}</td></tr>` : ''}
                   ${job.remarks ? `<tr><td><strong>Remarks:</strong> ${job.remarks}</td><td></td></tr>` : ''}
                 </tbody>
               </table>
@@ -323,11 +391,11 @@ function App() {
 
             <div class="section">
               <h3>Job Status</h3>
-              <p><strong>Status:</strong> <span style="color: ${job.status === 'Delivered' ? 'green' : job.status === 'Processing' ? 'orange' : 'red'}">${job.status}</span></p>
-              <p><strong>Job Date:</strong> ${new Date(job.date).toLocaleDateString()}</p>
+              <p><strong>Status:</strong> <span style="color: ${job.status === 'Delivered' ? 'green' : job.status === 'Processing' ? 'orange' : 'red'}">${job.status || 'Pending'}</span></p>
+              <p><strong>Job Date:</strong> ${job.date ? new Date(job.date).toLocaleDateString() : new Date().toLocaleDateString()}</p>
             </div>
 
-            <div class="total">Grand Total: ₹${job.total_amount}</div>
+            <div class="total">Grand Total: ₹${job.total_amount || 0}</div>
             
             <div style="margin-top: 50px; border-top: 1px solid #333; padding-top: 20px;">
               <p><strong>Customer Signature:</strong> _________________________</p>
@@ -387,6 +455,8 @@ function App() {
       mechanic: '', 
       item_model: '', 
       fault: '', 
+      service: '',
+      product: '',
       status: 'Pending', 
       remarks: '', 
       total_amount: 0 
@@ -472,7 +542,7 @@ function App() {
               <p>Active Staff</p>
             </div>
             <div className="card">
-              <h3>{jobs.length}</h3>
+              <h3>{jobs.filter(j => j && j.jobId).length}</h3>
               <p>Total Jobs</p>
             </div>
             <div className="card">
@@ -480,7 +550,7 @@ function App() {
               <p>Services</p>
             </div>
             <div className="card">
-              <h3>₹{jobs.reduce((sum, job) => sum + (parseFloat(job.total_amount) || 0), 0)}</h3>
+              <h3>₹{jobs.filter(j => j && j.total_amount).reduce((sum, job) => sum + (parseFloat(job.total_amount) || 0), 0)}</h3>
               <p>Total Revenue</p>
             </div>
           </div>
@@ -600,25 +670,30 @@ function App() {
                     <th>Job ID</th>
                     <th>Client</th>
                     <th>Device Model</th>
-                    <th>Fault</th>
-                    <th>Mechanic</th>
+                    <th>Service/Part</th>
                     <th>Total Amount</th>
                     <th>Status</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {jobs.map(j => (
+                  {jobs.filter(j => j && j.jobId).map(j => (
                     <tr key={j._id}>
                       <td>{j.jobId}</td>
                       <td>{j.client?.firstname} {j.client?.lastname}</td>
                       <td>{j.item_model || 'N/A'}</td>
-                      <td>{j.fault || 'N/A'}</td>
-                      <td>{j.mechanic?.name}</td>
-                      <td>₹{j.total_amount}</td>
-                      <td><span className={`status-${j.status?.toLowerCase()}`}>{j.status}</span></td>
+                      <td>
+                        <div><strong>Service:</strong> {j.service?.service || 'None'}</div>
+                        <div><strong>Part:</strong> {j.product?.name || 'None'}</div>
+                      </td>
+                      <td>₹{j.total_amount || 0}</td>
+                      <td>
+                        <span className={`status-${(j.status || 'Pending').toLowerCase()}`}>
+                          {j.status || 'Pending'}
+                        </span>
+                      </td>
                       <td className="action-btns">
-                        <button className="btn-edit" onClick={() => {setEditingId(j._id); setJobForm(j); setShowModal(true);}}>Edit</button>
+                        <button className="btn-edit" onClick={() => {setEditingId(j._id); setJobForm({...j, service: j.service?._id, product: j.product?._id}); setShowModal(true);}}>Edit</button>
                         <button className="btn-print" onClick={() => handlePrint(j)}>Print</button>
                         <button className="btn-del" onClick={() => deleteItem('job', j._id)}>Del</button>
                       </td>
@@ -699,7 +774,7 @@ function App() {
                 </div>
               )}
 
-              {/* Updated Job Sheet Form with new fields */}
+              {/* UPDATED Job Sheet Form with new fields */}
               {activeTab === 'jobsheets' && (
                 <div className="form-grid">
                   <div className="form-group">
@@ -740,6 +815,24 @@ function App() {
                     </select>
                   </div>
 
+                  {/* NEW: Service Selection */}
+                  <div className="form-group">
+                    <label>Service (Charge)</label>
+                    <select value={jobForm.service} onChange={e => setJobForm({...jobForm, service: e.target.value})}>
+                      <option value="">-- No Service --</option>
+                      {services.map(s => <option key={s._id} value={s._id}>{s.service} (₹{s.cost})</option>)}
+                    </select>
+                  </div>
+
+                  {/* NEW: Spare Part Selection */}
+                  <div className="form-group">
+                    <label>Spare Part (Stock)</label>
+                    <select value={jobForm.product} onChange={e => setJobForm({...jobForm, product: e.target.value})}>
+                      <option value="">-- No Part Used --</option>
+                      {products.map(p => <option key={p._id} value={p._id}>{p.name} (₹{p.sell_price})</option>)}
+                    </select>
+                  </div>
+
                   <div className="form-group">
                     <label>Status</label>
                     <select value={jobForm.status} onChange={e => setJobForm({...jobForm, status: e.target.value})}>
@@ -750,13 +843,14 @@ function App() {
                     </select>
                   </div>
 
+                  {/* Auto-Calculated Total */}
                   <div className="form-group">
-                    <label>Estimated Amount</label>
+                    <label>Total Amount (Auto)</label>
                     <input 
                       type="number" 
                       value={jobForm.total_amount} 
-                      onChange={e => setJobForm({...jobForm, total_amount: e.target.value})} 
-                      required 
+                      readOnly 
+                      style={{backgroundColor: '#e2e8f0', fontWeight: 'bold'}}
                     />
                   </div>
 

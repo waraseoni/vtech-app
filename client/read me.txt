@@ -1,0 +1,64 @@
+node index.js	( for start backendserver)
+npm start	( for start frontend server)
+
+git add .
+git commit -m "UI fixed and Top/Bottom navigation added"
+git push origin main
+
+Git par code push karna bahut aasan hai. Aapne jo badlaav (changes) App.js, index.js, aur App.css mein kiye hain, unhe GitHub par bhejne ke liye niche diye gaye steps ko terminal (ya CMD) mein ek-ek karke chalayein:
+
+1. Changes ko Add karein
+Pehle Git ko batana padta hai ki kaunsi files bhejni hain. Sabhi files select karne ke liye:
+
+Bash
+git add .
+2. Message ke saath Commit karein
+Ab ek chhota sa message likhein taaki aapko yaad rahe ki is update mein aapne kya kiya tha (jaise UI fix kiya ya login fix kiya):
+
+Bash
+git commit -m "UI fixed and Top/Bottom navigation added"
+3. GitHub par Push karein
+Ab ye command aapka code internet (GitHub) par bhej degi:
+
+Bash
+git push origin main
+(Agar aapka branch master hai, toh git push origin master likhein).
+
+Kuch Zaroori Baatein:
+Vercel/Render Auto-Update: Jaise hi aap push karenge, Vercel (Frontend) aur Render (Backend) apne aap naya code utha lenge aur build shuru kar denge. Aapko wahan jaakar kuch karne ki zaroorat nahi padegi.
+
+Error aaye toh: Agar "Permission Denied" ya "Conflict" aaye, toh check karein ki aap sahi folder mein hain.
+
+Status Check: Agar aap dekhna chahte hain ki kaunsi files change hui hain, toh git status chala kar dekh sakte hain.
+
+git pull origin main
+
+"Pull" ka matlab hota hai ki jo badlaav (changes) GitHub par hain (jaise agar aapne dusre PC se push kiya ho), unhe apne current computer par download karna.
+
+Ye commands tab kaam aati hain jab aap chahte hain ki aapka local code aur GitHub ka code bilkul ek jaisa (sync) ho jaye.
+
+1. Simple Pull (Sabse zyada use hone wala)
+Terminal mein apne project folder ke andar ye command chalaein:
+
+Bash
+git pull origin main
+(Agar aapka branch master hai, toh main ki jagah master likhein).
+
+2. Agar "Local Changes" ki wajah se Error aaye
+Kabhi-kabhi Git pull nahi karne deta kyunki aapne apne PC par kuch changes kiye hote hain jo abhi tak commit nahi hue. Iske do raste hain:
+
+Rasta A: Apne changes ko pehle save karein (Recommended)
+Bash
+git add .
+git commit -m "Saving my work before pulling"
+git pull origin main
+Rasta B: Apne local changes ko mita kar GitHub wala code lena
+Savdhaan: Isse aapka wo kaam delete ho jayega jo aapne abhi tak push nahi kiya hai.
+
+Bash
+git fetch --all
+git reset --hard origin/main
+3. Zaroori Tips
+Hamesha Pull Pehle Karein: Kaam shuru karne se pehle git pull karne ki aadat dalein, taaki aap hamesha latest code par kaam karein.
+
+Sync Check: git status chala kar dekhein, wo bata dega ki aapka branch GitHub se peeche hai ya aage.
